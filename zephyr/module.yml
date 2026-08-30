@@ -1,0 +1,5 @@
+name: kfsw-modules
+
+build:
+  cmake: .
+  kconfig: Kconfig
