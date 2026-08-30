@@ -7,3 +7,15 @@ tests:
       - uhf
     platform_allow:
       - native_sim/native/64
+  kfsw.modules.radio_uhf.shell:
+    tags:
+      - kfsw
+      - modules
+      - radio
+      - uhf
+      - shell
+    platform_allow:
+      - native_sim/native/64
+    extra_configs:
+      - CONFIG_SHELL=y
+      - CONFIG_KFSW_RADIO_UHF_SHELL=y

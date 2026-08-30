@@ -10,6 +10,7 @@ endif()
 
 add_library(kfsw_radio_uhf STATIC ${kfsw_radio_uhf_sources})
 add_library(kfsw::radio_uhf ALIAS kfsw_radio_uhf)
+add_dependencies(kfsw_radio_uhf zephyr_generated_headers)
 
 target_include_directories(kfsw_radio_uhf
     PUBLIC
