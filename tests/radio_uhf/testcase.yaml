@@ -1,0 +1,9 @@
+tests:
+  kfsw.modules.radio_uhf:
+    tags:
+      - kfsw
+      - modules
+      - radio
+      - uhf
+    platform_allow:
+      - native_sim/native/64

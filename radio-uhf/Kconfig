@@ -1,0 +1,41 @@
+menuconfig KFSW_RADIO_UHF
+	bool "K-FSW reusable UHF radio module"
+	help
+	  Enable the reusable UHF-radio identity, expected configuration, and
+	  bounded diagnostic API. Generic CSP, KISS, and UART data transport remain
+	  owned by kfsw-comms.
+
+if KFSW_RADIO_UHF
+
+choice KFSW_RADIO_UHF_IMPLEMENTATION
+	prompt "UHF radio implementation"
+	default KFSW_RADIO_UHF_HOLYBRO
+	help
+	  Select exactly one physical UHF radio implementation at build time.
+
+config KFSW_RADIO_UHF_HOLYBRO
+	bool "Holybro SiK transparent serial radio"
+	help
+	  Select the Holybro SiK implementation. This module reports configured
+	  expectations but does not enter SiK command mode or alter radio settings.
+
+endchoice
+
+config KFSW_RADIO_UHF_EXPECTED_SERIAL_BAUD
+	int "Expected transparent-radio serial baud"
+	range 1200 1000000
+	default 57600 if KFSW_RADIO_UHF_HOLYBRO
+	help
+	  Build-time expectation for the serial transport connected to the selected
+	  radio. This value is not applied to the UART or read back from hardware;
+	  the target devicetree remains authoritative for the actual UART rate.
+
+config KFSW_RADIO_UHF_SHELL
+	bool "UHF radio diagnostic shell command"
+	depends on SHELL
+	default y
+	help
+	  Add the small `uhf status` diagnostic command. It reports only selected
+	  implementation and configured expectations; it does not probe RF state.
+
+endif # KFSW_RADIO_UHF

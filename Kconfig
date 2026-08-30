@@ -1,5 +1,5 @@
 menu "K-FSW reusable modules"
 
-# Real modules add independently selectable symbols when introduced.
+source "$(ZEPHYR_KFSW_MODULES_MODULE_DIR)/radio-uhf/Kconfig"
 
 endmenu
