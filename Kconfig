@@ -1,0 +1,5 @@
+menu "K-FSW reusable modules"
+
+# Real modules add independently selectable symbols when introduced.
+
+endmenu
