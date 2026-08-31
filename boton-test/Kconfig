@@ -1,0 +1,36 @@
+menuconfig KFSW_BOTON_TEST
+	bool "K-FSW boton_test example module"
+	depends on KFSW_PARAM
+	help
+	  Enable the reusable button example module. The module owns debounced
+	  press semantics, volatile runtime status, a typed status API, and its
+	  read-only PARAM definitions.
+
+if KFSW_BOTON_TEST
+
+config KFSW_BOTON_TEST_GPIO
+	bool "Physical GPIO button input"
+	depends on GPIO
+	help
+	  Bind boton_test to the GPIO node selected by the composition's
+	  kfsw,boton-test-button Devicetree chosen property. Leave this disabled
+	  for software-only state and PARAM tests.
+
+config KFSW_BOTON_TEST_DEBOUNCE_MS
+	int "Button debounce interval in milliseconds"
+	depends on KFSW_BOTON_TEST_GPIO
+	range 1 1000
+	default 30
+	help
+	  Delay from the most recent GPIO edge until the logical button level is
+	  sampled. Each new edge restarts this interval.
+
+config KFSW_BOTON_TEST_SHELL
+	bool "boton_test diagnostic shell command"
+	depends on SHELL
+	default y
+	help
+	  Add `boton_test status`, which reports the module's typed status
+	  snapshot and, for GPIO compositions, the configured debounce interval.
+
+endif # KFSW_BOTON_TEST
