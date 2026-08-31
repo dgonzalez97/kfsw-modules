@@ -1,1 +1,2 @@
+add_subdirectory_ifdef(CONFIG_KFSW_BOTON_TEST boton-test)
 add_subdirectory_ifdef(CONFIG_KFSW_RADIO_UHF radio-uhf)

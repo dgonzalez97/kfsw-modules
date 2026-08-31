@@ -6,10 +6,11 @@ flight and ground compositions.
 ## Repository boundary
 
 This repository owns reusable functionality that does not naturally belong to
-the generic K-FSW platform, service, or communications repositories. Its first
-module is `radio-uhf`, with Holybro SiK as the first compile-time-selected
-implementation. Possible future modules include GNSS receivers, ADCS or EPS
-devices, and payload devices; those examples are not implemented capabilities.
+the generic K-FSW platform, service, or communications repositories. Current
+implementations are the `radio-uhf` equipment module and the deliberately small
+`boton_test` ownership example. Possible future modules include GNSS receivers,
+ADCS or EPS devices, and payload devices; those examples are not implemented
+capabilities.
 
 The generic boundaries remain:
 
@@ -74,6 +75,59 @@ the live CSP/KISS serial path and requires an explicit arbitration design. The
 module never executes `AT&W`, `AT&F`, or `ATS...`, and it does not alter the
 verified `MAVLINK=1` setting.
 
+## boton_test reference module
+
+`boton_test` demonstrates the complete boundary for a small stateful hardware
+module without taking ownership of generic mechanisms:
+
+```text
+composition-chosen GPIO -> edge ISR -> 30 ms delayable work -> owner state
+                                                               |        \
+                                                               |         +-> PARAM set
+                                                               v
+                                                        typed status API
+                                                               |
+                                                               v
+                                                        future HK collector
+                                                        (not implemented)
+```
+
+The reusable source resolves `kfsw,boton-test-button`; it contains no board,
+MCU, GPIO controller, or pin name. A target overlay maps that chosen phandle to
+an existing GPIO node and its devicetree flags define active-low or active-high
+polarity. The ISR only reschedules one static delayable item on Zephyr's system
+workqueue. After the configurable debounce interval, work reads the logical
+level. One stable released-to-pressed transition counts, holding does not
+recount, and a stable release rearms the next press. Initialization is
+serialized and schedules the same debounced sample after interrupts are
+enabled, reconciling any transition that occurred during GPIO setup.
+
+The module owns `press_count` and `last_press_s`. Both start at zero on every
+boot and are neither persistent nor dynamically allocated. `press_count`
+saturates at `UINT32_MAX`; accepted presses still update `last_press_s` after
+saturation. Monotonic milliseconds from `kfsw-platform` are divided by 1000
+with floor semantics, and the 32-bit seconds value also saturates rather than
+wrapping after approximately 136 years.
+
+`kfsw_boton_test_get_status()` copies the pair under one short mutex so a
+future Housekeeping collector can consume a consistent typed snapshot without
+GPIO access or PARAM lookup. The module creates no thread and allocates no
+memory dynamically. PARAM/CSP provides generic remote observation but is not
+called by the button ISR or work handler.
+
+The current PARAM definition model reads raw owner-backed scalars rather than
+calling an owner getter. Each button entry is therefore an independent,
+naturally aligned 32-bit view; it is not a coherent two-field snapshot and on
+the tested targets relies on single-copy 32-bit access rather than a shared
+formal C synchronization primitive. The typed API is the synchronized
+interface for multi-field consumers. A future generic PARAM owner-read
+callback would close that service-level limitation without duplicating state.
+
+The first physical mapping is the NUCLEO-L496ZG blue USER button in an explicit
+K-FSW example profile. Native state, PARAM, saturation, and GPIO-emulator
+debounce tests do not require that board. Physical bench evidence remains a
+separate, user-driven acceptance step.
+
 ## Module ownership pattern
 
 A module may own its public interface, parameters and their semantics, health
@@ -93,7 +147,9 @@ radio-uhf/
 
 Only directories backed by implemented behavior are created. `radio-uhf`
 currently needs interface/status and Holybro implementation sources; it does
-not create empty parameter or health subsystems.
+not create empty parameter or health subsystems. `boton-test` keeps its owner
+state/API and GPIO adapter separate so native tests can exercise semantics
+without a physical input.
 
 ## Parameter ownership
 
@@ -110,5 +166,21 @@ the existing boundaries:
 - `KFSW_PARAM_CSP` owns remote CSP exposure.
 
 Contributing a module definition set must not require editing `parameter.c`,
-adding a PARAM-to-module dependency, or making the module aware of CSP. No fake
-parameters are included in this foundation.
+adding a PARAM-to-module dependency, or making the module aware of CSP.
+
+K-FSW uses one global 16-bit parameter-ID namespace. IDs are assigned as the
+lowest unused value across production and reserved test definitions and are
+never recycled. Existing assignments are:
+
+| ID | Definition | Owner/status |
+| --- | --- | --- |
+| 0 | `node_id` | application composition |
+| 1 | `log_level` | logging service |
+| 2–5 | test fixtures | reserved even when disabled |
+| 6 | `boton_test_press_count` | `boton_test`, read-only, non-persistent |
+| 7 | `boton_test_last_press_s` | `boton_test`, read-only, non-persistent |
+
+The registry and review policy keep assignments stable; PARAM aggregation
+rejects any duplicate ID or name with `-EEXIST` as the executable collision
+guard. Numeric allocation is central, while each actual definition remains in
+its semantic owner.

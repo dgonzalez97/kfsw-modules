@@ -1,5 +1,6 @@
 menu "K-FSW reusable modules"
 
+source "$(ZEPHYR_KFSW_MODULES_MODULE_DIR)/boton-test/Kconfig"
 source "$(ZEPHYR_KFSW_MODULES_MODULE_DIR)/radio-uhf/Kconfig"
 
 endmenu
