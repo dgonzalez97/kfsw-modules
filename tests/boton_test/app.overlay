@@ -1,0 +1,19 @@
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+/ {
+	chosen {
+		kfsw,boton-test-button = &boton_test_test_button;
+	};
+
+	boton_test_buttons {
+		compatible = "gpio-keys";
+
+		boton_test_test_button: button {
+			gpios = <&gpio0 1 GPIO_ACTIVE_LOW>;
+		};
+	};
+};
+
+&gpio0 {
+	ngpios = <2>;
+};
