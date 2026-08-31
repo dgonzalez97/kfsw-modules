@@ -16,6 +16,14 @@ config KFSW_BOTON_TEST_GPIO
 	  kfsw,boton-test-button Devicetree chosen property. Leave this disabled
 	  for software-only state and PARAM tests.
 
+config KFSW_BOTON_TEST_LED_GPIO
+	bool "Physical GPIO LED outputs"
+	depends on GPIO
+	help
+	  Bind the green, blue, and red hardware-test LEDs to GPIO nodes selected
+	  by the composition's kfsw,boton-test-led-* Devicetree chosen
+	  properties. Each node's GPIO flags define its active polarity.
+
 config KFSW_BOTON_TEST_DEBOUNCE_MS
 	int "Button debounce interval in milliseconds"
 	depends on KFSW_BOTON_TEST_GPIO
@@ -26,11 +34,12 @@ config KFSW_BOTON_TEST_DEBOUNCE_MS
 	  sampled. Each new edge restarts this interval.
 
 config KFSW_BOTON_TEST_SHELL
-	bool "boton_test diagnostic shell command"
+	bool "boton_test hardware-test shell commands"
 	depends on SHELL
 	default y
 	help
 	  Add `boton_test status`, which reports the module's typed status
-	  snapshot and, for GPIO compositions, the configured debounce interval.
+	  snapshot, and `test led <green|blue|red> <on|off>`, which controls the
+	  same module-owned LED state exposed through PARAM.
 
 endif # KFSW_BOTON_TEST

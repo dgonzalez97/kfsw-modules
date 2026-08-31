@@ -12,6 +12,7 @@
 
 #include "boton_test_internal.h"
 
+#if CONFIG_KFSW_BOTON_TEST_GPIO
 #define KFSW_BOTON_TEST_BUTTON_NODE DT_CHOSEN(kfsw_boton_test_button)
 
 BUILD_ASSERT(DT_NODE_EXISTS(KFSW_BOTON_TEST_BUTTON_NODE),
@@ -95,3 +96,51 @@ int kfsw_boton_test_gpio_start(void)
 				K_MSEC(CONFIG_KFSW_BOTON_TEST_DEBOUNCE_MS));
 	return 0;
 }
+#endif
+
+#if CONFIG_KFSW_BOTON_TEST_LED_GPIO
+#define KFSW_BOTON_TEST_GREEN_LED_NODE DT_CHOSEN(kfsw_boton_test_led_green)
+#define KFSW_BOTON_TEST_BLUE_LED_NODE DT_CHOSEN(kfsw_boton_test_led_blue)
+#define KFSW_BOTON_TEST_RED_LED_NODE DT_CHOSEN(kfsw_boton_test_led_red)
+
+#define KFSW_BOTON_TEST_ASSERT_LED(node_id, chosen_name)                                      \
+	BUILD_ASSERT(DT_NODE_EXISTS(node_id), chosen_name " must select a GPIO LED node");      \
+	BUILD_ASSERT(DT_NODE_HAS_PROP(node_id, gpios), chosen_name " must provide gpios")
+
+KFSW_BOTON_TEST_ASSERT_LED(KFSW_BOTON_TEST_GREEN_LED_NODE, "kfsw,boton-test-led-green");
+KFSW_BOTON_TEST_ASSERT_LED(KFSW_BOTON_TEST_BLUE_LED_NODE, "kfsw,boton-test-led-blue");
+KFSW_BOTON_TEST_ASSERT_LED(KFSW_BOTON_TEST_RED_LED_NODE, "kfsw,boton-test-led-red");
+
+static const struct gpio_dt_spec boton_test_leds[KFSW_BOTON_TEST_LED_COUNT] = {
+	[KFSW_BOTON_TEST_LED_GREEN] =
+		GPIO_DT_SPEC_GET(KFSW_BOTON_TEST_GREEN_LED_NODE, gpios),
+	[KFSW_BOTON_TEST_LED_BLUE] =
+		GPIO_DT_SPEC_GET(KFSW_BOTON_TEST_BLUE_LED_NODE, gpios),
+	[KFSW_BOTON_TEST_LED_RED] =
+		GPIO_DT_SPEC_GET(KFSW_BOTON_TEST_RED_LED_NODE, gpios),
+};
+
+int kfsw_boton_test_led_gpio_prepare(void)
+{
+	for (size_t index = 0U; index < ARRAY_SIZE(boton_test_leds); index++) {
+		int result;
+
+		if (!gpio_is_ready_dt(&boton_test_leds[index])) {
+			return -ENODEV;
+		}
+		result = gpio_pin_configure_dt(&boton_test_leds[index], GPIO_OUTPUT_INACTIVE);
+		if (result != 0) {
+			return result;
+		}
+	}
+	return 0;
+}
+
+int kfsw_boton_test_led_gpio_set(enum kfsw_boton_test_led led, bool on)
+{
+	if ((unsigned int)led >= ARRAY_SIZE(boton_test_leds)) {
+		return -EINVAL;
+	}
+	return gpio_pin_set_dt(&boton_test_leds[led], on ? 1 : 0);
+}
+#endif

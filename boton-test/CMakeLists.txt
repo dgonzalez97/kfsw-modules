@@ -2,7 +2,7 @@ set(kfsw_boton_test_sources
     src/boton_test.c
 )
 
-if(CONFIG_KFSW_BOTON_TEST_GPIO)
+if(CONFIG_KFSW_BOTON_TEST_GPIO OR CONFIG_KFSW_BOTON_TEST_LED_GPIO)
     list(APPEND kfsw_boton_test_sources
         src/boton_test_gpio.c
     )

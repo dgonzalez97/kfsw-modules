@@ -78,18 +78,17 @@ verified `MAVLINK=1` setting.
 ## boton_test reference module
 
 `boton_test` demonstrates the complete boundary for a small stateful hardware
-module without taking ownership of generic mechanisms:
+module without taking ownership of generic mechanisms. Its developer-facing
+logical table is named `hw_test`; table ID `67` is reserved for the following
+generic Housekeeping integration:
 
 ```text
-composition-chosen GPIO -> edge ISR -> 30 ms delayable work -> owner state
-                                                               |        \
-                                                               |         +-> PARAM set
-                                                               v
-                                                        typed status API
-                                                               |
-                                                               v
-                                                        future HK collector
-                                                        (not implemented)
+composition-chosen button -> edge ISR -> delayable work ---+
+composition-chosen LEDs <-> owner LED setter <-> shell/PARAM +-> owner state
+                                                            |        |
+                                                            |        +-> typed status API
+                                                            |                  |
+                                                            +------------------+-> future HK table 67
 ```
 
 The reusable source resolves `kfsw,boton-test-button`; it contains no board,
@@ -102,14 +101,15 @@ recount, and a stable release rearms the next press. Initialization is
 serialized and schedules the same debounced sample after interrupts are
 enabled, reconciling any transition that occurred during GPIO setup.
 
-The module owns `press_count` and `last_press_s`. Both start at zero on every
-boot and are neither persistent nor dynamically allocated. `press_count`
+The module owns `press_count`, `last_press_s`, and independent green, blue, and
+red LED booleans. All start at zero/off on every boot and are neither
+persistent nor dynamically allocated. `press_count`
 saturates at `UINT32_MAX`; accepted presses still update `last_press_s` after
 saturation. Monotonic milliseconds from `kfsw-platform` are divided by 1000
 with floor semantics, and the 32-bit seconds value also saturates rather than
 wrapping after approximately 136 years.
 
-`kfsw_boton_test_get_status()` copies the pair under one short mutex so a
+`kfsw_boton_test_get_status()` copies all five fields under one short mutex so a
 future Housekeeping collector can consume a consistent typed snapshot without
 GPIO access or PARAM lookup. The module creates no thread and allocates no
 memory dynamically. PARAM/CSP provides generic remote observation but is not
@@ -123,10 +123,12 @@ formal C synchronization primitive. The typed API is the synchronized
 interface for multi-field consumers. A future generic PARAM owner-read
 callback would close that service-level limitation without duplicating state.
 
-The first physical mapping is the NUCLEO-L496ZG blue USER button in an explicit
-K-FSW example profile. Native state, PARAM, saturation, and GPIO-emulator
-debounce tests do not require that board. Physical bench evidence remains a
-separate, user-driven acceptance step.
+The first physical mapping is the NUCLEO-L496ZG blue USER button plus its three
+independent user LEDs: `led0`/LD1 green, `led1`/LD2 blue, and `led2`/LD3 red.
+The reusable module resolves only composition-selected nodes and uses their
+Devicetree GPIO polarity flags. Native state, PARAM, saturation, shell, and
+GPIO-emulator tests do not require that board. Physical bench evidence remains
+a separate, user-driven acceptance step.
 
 ## Module ownership pattern
 
@@ -179,6 +181,9 @@ never recycled. Existing assignments are:
 | 2–5 | test fixtures | reserved even when disabled |
 | 6 | `boton_test_press_count` | `boton_test`, read-only, non-persistent |
 | 7 | `boton_test_last_press_s` | `boton_test`, read-only, non-persistent |
+| 8 | `hw_test_led_green` | `boton_test`, writable boolean, non-persistent |
+| 9 | `hw_test_led_blue` | `boton_test`, writable boolean, non-persistent |
+| 10 | `hw_test_led_red` | `boton_test`, writable boolean, non-persistent |
 
 The registry and review policy keep assignments stable; PARAM aggregation
 rejects any duplicate ID or name with `-EEXIST` as the executable collision
