@@ -103,8 +103,8 @@ int kfsw_boton_test_gpio_start(void)
 #define KFSW_BOTON_TEST_BLUE_LED_NODE DT_CHOSEN(kfsw_boton_test_led_blue)
 #define KFSW_BOTON_TEST_RED_LED_NODE DT_CHOSEN(kfsw_boton_test_led_red)
 
-#define KFSW_BOTON_TEST_ASSERT_LED(node_id, chosen_name)                                      \
-	BUILD_ASSERT(DT_NODE_EXISTS(node_id), chosen_name " must select a GPIO LED node");      \
+#define KFSW_BOTON_TEST_ASSERT_LED(node_id, chosen_name)                                           \
+	BUILD_ASSERT(DT_NODE_EXISTS(node_id), chosen_name " must select a GPIO LED node");         \
 	BUILD_ASSERT(DT_NODE_HAS_PROP(node_id, gpios), chosen_name " must provide gpios")
 
 KFSW_BOTON_TEST_ASSERT_LED(KFSW_BOTON_TEST_GREEN_LED_NODE, "kfsw,boton-test-led-green");
@@ -112,12 +112,9 @@ KFSW_BOTON_TEST_ASSERT_LED(KFSW_BOTON_TEST_BLUE_LED_NODE, "kfsw,boton-test-led-b
 KFSW_BOTON_TEST_ASSERT_LED(KFSW_BOTON_TEST_RED_LED_NODE, "kfsw,boton-test-led-red");
 
 static const struct gpio_dt_spec boton_test_leds[KFSW_BOTON_TEST_LED_COUNT] = {
-	[KFSW_BOTON_TEST_LED_GREEN] =
-		GPIO_DT_SPEC_GET(KFSW_BOTON_TEST_GREEN_LED_NODE, gpios),
-	[KFSW_BOTON_TEST_LED_BLUE] =
-		GPIO_DT_SPEC_GET(KFSW_BOTON_TEST_BLUE_LED_NODE, gpios),
-	[KFSW_BOTON_TEST_LED_RED] =
-		GPIO_DT_SPEC_GET(KFSW_BOTON_TEST_RED_LED_NODE, gpios),
+	[KFSW_BOTON_TEST_LED_GREEN] = GPIO_DT_SPEC_GET(KFSW_BOTON_TEST_GREEN_LED_NODE, gpios),
+	[KFSW_BOTON_TEST_LED_BLUE] = GPIO_DT_SPEC_GET(KFSW_BOTON_TEST_BLUE_LED_NODE, gpios),
+	[KFSW_BOTON_TEST_LED_RED] = GPIO_DT_SPEC_GET(KFSW_BOTON_TEST_RED_LED_NODE, gpios),
 };
 
 int kfsw_boton_test_led_gpio_prepare(void)
