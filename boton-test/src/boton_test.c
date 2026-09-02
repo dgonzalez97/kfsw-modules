@@ -95,8 +95,7 @@ int kfsw_boton_test_set_led(enum kfsw_boton_test_led led, bool on)
 	return result;
 }
 
-static int validate_led(enum kfsw_boton_test_led led,
-			const union kfsw_param_scalar *value)
+static int validate_led(enum kfsw_boton_test_led led, const union kfsw_param_scalar *value)
 {
 	int result = 0;
 
