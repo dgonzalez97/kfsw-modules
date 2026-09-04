@@ -17,11 +17,14 @@
 
 #include "boton_test_internal.h"
 
-#define BOTON_TEST_PRESS_COUNT_ID 6U
-#define BOTON_TEST_LAST_PRESS_S_ID 7U
-#define HW_TEST_LED_GREEN_ID 8U
-#define HW_TEST_LED_BLUE_ID 9U
-#define HW_TEST_LED_RED_ID 10U
+/* Offsets within table 67, not identifiers in a flat space. The table is what
+ * makes them unique, so the same offsets may appear in any other table.
+ */
+#define BOTON_TEST_PRESS_COUNT_OFFSET 0x00U
+#define BOTON_TEST_LAST_PRESS_S_OFFSET 0x04U
+#define HW_TEST_LED_GREEN_OFFSET 0x08U
+#define HW_TEST_LED_BLUE_OFFSET 0x09U
+#define HW_TEST_LED_RED_OFFSET 0x0aU
 
 #if CONFIG_KFSW_BOTON_TEST_GPIO
 #define BOTON_TEST_BUTTON_NODE DT_CHOSEN(kfsw_boton_test_button)
@@ -275,11 +278,17 @@ ZTEST(boton_test, test_parameter_definition_set_has_stable_nonpersistent_ids)
 	zassert_not_null(led_green);
 	zassert_not_null(led_blue);
 	zassert_not_null(led_red);
-	zassert_equal(press_count->id, BOTON_TEST_PRESS_COUNT_ID);
-	zassert_equal(last_press_s->id, BOTON_TEST_LAST_PRESS_S_ID);
-	zassert_equal(led_green->id, HW_TEST_LED_GREEN_ID);
-	zassert_equal(led_blue->id, HW_TEST_LED_BLUE_ID);
-	zassert_equal(led_red->id, HW_TEST_LED_RED_ID);
+	zassert_equal(press_count->offset, BOTON_TEST_PRESS_COUNT_OFFSET);
+	zassert_equal(last_press_s->offset, BOTON_TEST_LAST_PRESS_S_OFFSET);
+	zassert_equal(led_green->offset, HW_TEST_LED_GREEN_OFFSET);
+	zassert_equal(led_blue->offset, HW_TEST_LED_BLUE_OFFSET);
+	zassert_equal(led_red->offset, HW_TEST_LED_RED_OFFSET);
+
+	/* The module band is where a module's table has to sit: a table outside
+	 * it would collide with a core or service table on another node. */
+	zassert_equal(kfsw_boton_test_param_definitions.table, KFSW_HW_TEST_TABLE_ID);
+	zassert_str_equal(kfsw_boton_test_param_definitions.name, KFSW_HW_TEST_TABLE_NAME);
+	zassert_str_equal(kfsw_param_band_name(KFSW_HW_TEST_TABLE_ID), "module");
 	zassert_equal(press_count->type, KFSW_PARAM_U32);
 	zassert_equal(last_press_s->type, KFSW_PARAM_U32);
 	zassert_equal(led_green->type, KFSW_PARAM_U8);

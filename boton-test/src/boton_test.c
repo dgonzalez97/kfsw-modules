@@ -229,7 +229,7 @@ int kfsw_boton_test_get_status(struct kfsw_boton_test_status *status)
 
 static const struct kfsw_param_definition boton_test_param_definitions[] = {
 	{
-		.id = 6U,
+		.offset = 0x00U,
 		.type = KFSW_PARAM_U32,
 		.flags = KFSW_PARAM_FLAG_READ_ONLY | KFSW_PARAM_FLAG_DEBUG,
 		.name = "boton_test_press_count",
@@ -239,7 +239,7 @@ static const struct kfsw_param_definition boton_test_param_definitions[] = {
 		.default_value = {.u32 = 0U},
 	},
 	{
-		.id = 7U,
+		.offset = 0x04U,
 		.type = KFSW_PARAM_U32,
 		.flags = KFSW_PARAM_FLAG_READ_ONLY | KFSW_PARAM_FLAG_DEBUG,
 		.name = "boton_test_last_press_s",
@@ -249,7 +249,7 @@ static const struct kfsw_param_definition boton_test_param_definitions[] = {
 		.default_value = {.u32 = 0U},
 	},
 	{
-		.id = 8U,
+		.offset = 0x08U,
 		.type = KFSW_PARAM_U8,
 		.flags = KFSW_PARAM_FLAG_DEBUG,
 		.name = "hw_test_led_green",
@@ -259,7 +259,7 @@ static const struct kfsw_param_definition boton_test_param_definitions[] = {
 		.validate = validate_green_led,
 	},
 	{
-		.id = 9U,
+		.offset = 0x09U,
 		.type = KFSW_PARAM_U8,
 		.flags = KFSW_PARAM_FLAG_DEBUG,
 		.name = "hw_test_led_blue",
@@ -269,7 +269,7 @@ static const struct kfsw_param_definition boton_test_param_definitions[] = {
 		.validate = validate_blue_led,
 	},
 	{
-		.id = 10U,
+		.offset = 0x0aU,
 		.type = KFSW_PARAM_U8,
 		.flags = KFSW_PARAM_FLAG_DEBUG,
 		.name = "hw_test_led_red",
@@ -281,6 +281,8 @@ static const struct kfsw_param_definition boton_test_param_definitions[] = {
 };
 
 const struct kfsw_param_definition_set kfsw_boton_test_param_definitions = {
+	.table = KFSW_HW_TEST_TABLE_ID,
+	.name = KFSW_HW_TEST_TABLE_NAME,
 	.definitions = boton_test_param_definitions,
 	.count = ARRAY_SIZE(boton_test_param_definitions),
 };
