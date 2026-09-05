@@ -179,11 +179,11 @@ never recycled. Existing assignments are:
 | 0 | `node_id` | application composition |
 | 1 | `log_level` | logging service |
 | 2–5 | test fixtures | reserved even when disabled |
-| 6 | `boton_test_press_count` | `boton_test`, read-only, non-persistent |
-| 7 | `boton_test_last_press_s` | `boton_test`, read-only, non-persistent |
-| 8 | `hw_test_led_green` | `boton_test`, writable boolean, non-persistent |
-| 9 | `hw_test_led_blue` | `boton_test`, writable boolean, non-persistent |
-| 10 | `hw_test_led_red` | `boton_test`, writable boolean, non-persistent |
+| 6 | `press_count` | `boton_test`, read-only, non-persistent |
+| 7 | `last_press_s` | `boton_test`, read-only, non-persistent |
+| 8 | `led_green` | `boton_test`, writable boolean, non-persistent |
+| 9 | `led_blue` | `boton_test`, writable boolean, non-persistent |
+| 10 | `led_red` | `boton_test`, writable boolean, non-persistent |
 
 The registry and review policy keep assignments stable; PARAM aggregation
 rejects any duplicate ID or name with `-EEXIST` as the executable collision
