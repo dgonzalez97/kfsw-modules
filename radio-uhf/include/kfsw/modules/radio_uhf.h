@@ -4,6 +4,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#if CONFIG_KFSW_PARAM
+#include <kfsw/services/parameter.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,6 +47,16 @@ int kfsw_radio_uhf_get_info(struct kfsw_radio_uhf_info *info);
 
 /** Return a stable printable label for a UHF RF-link state. */
 const char *kfsw_radio_uhf_link_state_name(enum kfsw_radio_uhf_link_state state);
+
+#if CONFIG_KFSW_PARAM
+/** Parameter table owned by this module, in the module band. */
+#define KFSW_RADIO_UHF_PARAM_TABLE_ID 50U
+/** Stable logical name paired with KFSW_RADIO_UHF_PARAM_TABLE_ID. */
+#define KFSW_RADIO_UHF_PARAM_TABLE_NAME "radio_uhf"
+
+/** What this composition expects of its radio, and what it can see of it. */
+extern const struct kfsw_param_definition_set kfsw_radio_uhf_param_definitions;
+#endif
 
 #ifdef __cplusplus
 }

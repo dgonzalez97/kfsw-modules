@@ -2,6 +2,10 @@ set(kfsw_radio_uhf_sources
     src/radio_uhf.c
 )
 
+if(CONFIG_KFSW_PARAM)
+    list(APPEND kfsw_radio_uhf_sources parameters/radio_uhf_table.c)
+endif()
+
 if(CONFIG_KFSW_RADIO_UHF_HOLYBRO)
     list(APPEND kfsw_radio_uhf_sources
         holybro/src/holybro.c
@@ -23,3 +27,7 @@ target_link_libraries(kfsw_radio_uhf
     PUBLIC
         zephyr_interface
 )
+
+if(CONFIG_KFSW_PARAM)
+    target_link_libraries(kfsw_radio_uhf PUBLIC kfsw::services)
+endif()

@@ -82,13 +82,12 @@ static bool summarize_parameter(const struct kfsw_param_info *info, void *contex
 	struct parameter_visit_summary *summary = context;
 
 	summary->count++;
-	summary->saw_press_count |= strcmp(info->name, "boton_test_press_count") == 0;
-	summary->saw_last_press_s |= strcmp(info->name, "boton_test_last_press_s") == 0;
-	summary->saw_led_green |= strcmp(info->name, "hw_test_led_green") == 0;
-	summary->saw_led_blue |= strcmp(info->name, "hw_test_led_blue") == 0;
-	summary->saw_led_red |= strcmp(info->name, "hw_test_led_red") == 0;
-	if ((strcmp(info->name, "boton_test_press_count") == 0) ||
-	    (strcmp(info->name, "boton_test_last_press_s") == 0)) {
+	summary->saw_press_count |= strcmp(info->name, "press_count") == 0;
+	summary->saw_last_press_s |= strcmp(info->name, "last_press_s") == 0;
+	summary->saw_led_green |= strcmp(info->name, "led_green") == 0;
+	summary->saw_led_blue |= strcmp(info->name, "led_blue") == 0;
+	summary->saw_led_red |= strcmp(info->name, "led_red") == 0;
+	if ((strcmp(info->name, "press_count") == 0) || (strcmp(info->name, "last_press_s") == 0)) {
 		summary->button_values_read_only &= info->read_only;
 	}
 	if (strncmp(info->name, "hw_test_led_", strlen("hw_test_led_")) == 0) {
@@ -263,12 +262,11 @@ ZTEST(boton_test, test_timestamp_saturates_instead_of_wrapping)
 
 ZTEST(boton_test, test_parameter_definition_set_has_stable_nonpersistent_ids)
 {
-	const struct kfsw_param_definition *press_count = find_definition("boton_test_press_count");
-	const struct kfsw_param_definition *last_press_s =
-		find_definition("boton_test_last_press_s");
-	const struct kfsw_param_definition *led_green = find_definition("hw_test_led_green");
-	const struct kfsw_param_definition *led_blue = find_definition("hw_test_led_blue");
-	const struct kfsw_param_definition *led_red = find_definition("hw_test_led_red");
+	const struct kfsw_param_definition *press_count = find_definition("press_count");
+	const struct kfsw_param_definition *last_press_s = find_definition("last_press_s");
+	const struct kfsw_param_definition *led_green = find_definition("led_green");
+	const struct kfsw_param_definition *led_blue = find_definition("led_blue");
+	const struct kfsw_param_definition *led_red = find_definition("led_red");
 
 	zassert_equal(KFSW_HW_TEST_TABLE_ID, 67U);
 	zassert_equal(strcmp(KFSW_HW_TEST_TABLE_NAME, "hw_test"), 0);
@@ -367,25 +365,25 @@ ZTEST(boton_test, test_param_led_writes_share_owner_state_and_reject_invalid_boo
 		.scalar.u8 = 1U,
 	};
 
-	zassert_ok(kfsw_param_set("hw_test_led_green", &value));
-	zassert_ok(kfsw_param_set("hw_test_led_blue", &value));
-	zassert_ok(kfsw_param_set("hw_test_led_red", &value));
+	zassert_ok(kfsw_param_set("led_green", &value));
+	zassert_ok(kfsw_param_set("led_blue", &value));
+	zassert_ok(kfsw_param_set("led_red", &value));
 	zassert_ok(kfsw_boton_test_get_status(&status));
 	zassert_true(status.led_green);
 	zassert_true(status.led_blue);
 	zassert_true(status.led_red);
 
 	value.scalar.u8 = 2U;
-	zassert_equal(kfsw_param_set("hw_test_led_blue", &value), -ERANGE);
+	zassert_equal(kfsw_param_set("led_blue", &value), -ERANGE);
 	zassert_ok(kfsw_boton_test_get_status(&status));
 	zassert_true(status.led_green);
 	zassert_true(status.led_blue);
 	zassert_true(status.led_red);
 
 	value.scalar.u8 = 0U;
-	zassert_ok(kfsw_param_set("hw_test_led_green", &value));
-	zassert_ok(kfsw_param_set("hw_test_led_blue", &value));
-	zassert_ok(kfsw_param_set("hw_test_led_red", &value));
+	zassert_ok(kfsw_param_set("led_green", &value));
+	zassert_ok(kfsw_param_set("led_blue", &value));
+	zassert_ok(kfsw_param_set("led_red", &value));
 	zassert_ok(kfsw_boton_test_get_status(&status));
 	zassert_false(status.led_green);
 	zassert_false(status.led_blue);
@@ -401,8 +399,8 @@ ZTEST(boton_test, test_parameter_get_is_live_and_writes_leave_owner_state_unchan
 
 	kfsw_boton_test_process_level(true, 42001U);
 	zassert_ok(kfsw_boton_test_get_status(&before));
-	zassert_ok(kfsw_param_get("boton_test_press_count", &press_count));
-	zassert_ok(kfsw_param_get("boton_test_last_press_s", &last_press_s));
+	zassert_ok(kfsw_param_get("press_count", &press_count));
+	zassert_ok(kfsw_param_get("last_press_s", &last_press_s));
 	zassert_equal(press_count.type, KFSW_PARAM_U32);
 	zassert_equal(press_count.size, sizeof(uint32_t));
 	zassert_equal(press_count.scalar.u32, before.press_count);
@@ -412,8 +410,8 @@ ZTEST(boton_test, test_parameter_get_is_live_and_writes_leave_owner_state_unchan
 
 	press_count.scalar.u32 = 100U;
 	last_press_s.scalar.u32 = 100U;
-	zassert_equal(kfsw_param_set("boton_test_press_count", &press_count), -EACCES);
-	zassert_equal(kfsw_param_set("boton_test_last_press_s", &last_press_s), -EACCES);
+	zassert_equal(kfsw_param_set("press_count", &press_count), -EACCES);
+	zassert_equal(kfsw_param_set("last_press_s", &last_press_s), -EACCES);
 	zassert_ok(kfsw_boton_test_get_status(&after));
 	zassert_equal(after.press_count, before.press_count);
 	zassert_equal(after.last_press_s, before.last_press_s);
