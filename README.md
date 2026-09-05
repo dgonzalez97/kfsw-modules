@@ -1,86 +1,77 @@
 # K-FSW Modules
 
-Reusable K-FSW device, subsystem, and mission-specific modules for Zephyr
-flight and ground compositions.
+Device and subsystem modules for K-FSW compositions — the code that knows about
+a particular piece of hardware, as opposed to the generic mechanisms it runs
+on.
 
-## Repository boundary
+Two exist today: `radio-uhf`, a UHF equipment module with a Holybro SiK
+implementation, and `boton-test`, a small worked example of what owning
+hardware looks like. GNSS receivers, ADCS or EPS devices and payloads would
+belong here too; none of them are written.
 
-This repository owns reusable functionality that does not naturally belong to
-the generic K-FSW platform, service, or communications repositories. Current
-implementations are the `radio-uhf` equipment module and the deliberately small
-`boton_test` ownership example. Possible future modules include GNSS receivers,
-ADCS or EPS devices, and payload devices; those examples are not implemented
-capabilities.
+## What belongs here
 
-The generic boundaries remain:
+A module owns hardware. It does not own the mechanisms it uses to reach that
+hardware:
 
-- `kfsw-platform`: Zephyr-facing mechanisms such as monotonic time, storage,
-  reset cause, and future watchdog support;
-- `kfsw-services`: reusable services such as logging, PARAM, persistence, and
-  file transfer; and
-- `kfsw-comms`: libcsp lifecycle and generic transports such as KISS and
-  future CAN/CFP.
+- `kfsw-platform` owns Zephyr-facing mechanisms — time, storage, reset cause,
+  watchdog;
+- `kfsw-services` owns reusable services — logging, parameters, persistence,
+  files, events, commands, health, firmware update;
+- `kfsw-comms` owns libcsp and the transports under it.
 
-A device using a generic mechanism does not take ownership of that mechanism.
-Holybro uses the existing transparent serial path without moving UART, KISS,
-CSP, routing, or packet ownership out of `kfsw-comms`.
+Using a mechanism is not taking it over. The Holybro radio moves bytes over a
+transparent serial link, and doing so leaves UART, KISS, CSP, routing and
+packet ownership exactly where they were.
 
-## Build and composition model
-
-`zephyr/module.yml` makes this repository a normal Zephyr module discovered
-through the K-FSW west manifest. The root `Kconfig` and `CMakeLists.txt` are
-extension points for real modules as they are introduced.
-
-Each module is selected independently at compile time. Its directory
-contributes sources with normal conditional CMake subdirectories and selects
-one concrete implementation through Kconfig. Repository presence alone does
-not enable a feature or create runtime behavior. There is no runtime plugin
-manager or central source registry.
+`zephyr/module.yml` makes this repository a normal Zephyr module found through
+the west manifest. Each module is selected at compile time and contributes its
+sources through conditional CMake, picking one implementation through Kconfig.
+Being present in the repository does not enable anything: there is no plugin
+manager and no central registry of sources.
 
 ## radio-uhf and Holybro SiK
-
-The current module tree is deliberately small:
 
 ```text
 radio-uhf/
 ├── include/kfsw/modules/radio_uhf.h
+├── parameters/radio_uhf_table.c
 ├── src/
 │   ├── radio_uhf.c
 │   └── radio_uhf_internal.h
 └── holybro/src/holybro.c
 ```
 
-The public API returns the selected implementation identity, expected hardware
-identity, expected transparent-serial baud/flow-control contract, whether live
-hardware status is available, and the RF-link state. Holybro currently has no
-safe live status query, so hardware status is unavailable and RF link remains
-`unknown`. The expected values are build-time composition facts, not hardware
-readback.
+The API reports the selected implementation, the hardware it expects, the
+transparent-serial contract it expects, whether live status can be read, and
+the RF link state. Most of that is a build-time fact rather than a readback:
+Holybro has no safe live status query while the link is carrying traffic, so
+status is unavailable and the link state stays `unknown`.
 
-`CONFIG_KFSW_RADIO_UHF` enables the module and the implementation choice selects
-`CONFIG_KFSW_RADIO_UHF_HOLYBRO`. The expected serial baud defaults to 57600.
-The target devicetree still owns the actual UART and pin configuration, and
-`kfsw-comms` still owns the UART/KISS data path.
+`CONFIG_KFSW_RADIO_UHF` enables the module and the implementation choice
+selects `CONFIG_KFSW_RADIO_UHF_HOLYBRO`. The expected baud defaults to 57600.
+The target devicetree still owns the UART and its pins, and `kfsw-comms` still
+owns the data path.
 
-The optional `uhf status` shell diagnostic reports this same bounded snapshot.
-It does not duplicate `csp info`, interfaces, routes, or UART counters.
+Six values are published in **table 50**, all read-only:
+`uhf_implementation`, `uhf_expected_hardware`, `uhf_expected_baud`,
+`uhf_expected_flow`, `uhf_status_available` and `uhf_link_state`. There is no
+writable TX power, network ID or air rate, because the module cannot apply one
+— a parameter that accepts a write and does nothing is worse than no parameter.
 
-No UHF parameters are currently exported. In particular, the module does not
-offer writable TX-power, network-ID, or air-rate values because it does not yet
-apply them to hardware. Adding values that accept writes but do nothing would
-violate parameter ownership semantics.
+SiK AT control is deferred for the same reason it is hard: entering command
+mode interrupts the live serial path, and deciding who may do that and when is
+a design in itself. The module never issues `AT&W`, `AT&F` or `ATS...`, and
+never touches the verified `MAVLINK=1` setting.
 
-General SiK AT control is also deferred. Entering command mode would interrupt
-the live CSP/KISS serial path and requires an explicit arbitration design. The
-module never executes `AT&W`, `AT&F`, or `ATS...`, and it does not alter the
-verified `MAVLINK=1` setting.
+The `uhf status` shell command reports the same snapshot. It does not repeat
+`csp info`, interfaces, routes or UART counters.
 
-## boton_test reference module
+## boton-test, a worked example
 
-`boton_test` demonstrates the complete boundary for a small stateful hardware
-module without taking ownership of generic mechanisms. Its developer-facing
-logical table is named `hw_test`; table ID `67` is reserved for the following
-generic Housekeeping integration:
+`boton_test` exists to show the whole boundary for a small stateful hardware
+module at a size you can read in one sitting. Its operator-facing name is
+`hw_test`, and it owns **table 67**.
 
 ```text
 composition-chosen button -> edge ISR -> delayable work ---+
@@ -88,104 +79,76 @@ composition-chosen LEDs <-> owner LED setter <-> shell/PARAM +-> owner state
                                                             |        |
                                                             |        +-> typed status API
                                                             |                  |
-                                                            +------------------+-> future HK table 67
+                                                            +------------------+-> table 67
 ```
 
-The reusable source resolves `kfsw,boton-test-button`; it contains no board,
-MCU, GPIO controller, or pin name. A target overlay maps that chosen phandle to
-an existing GPIO node and its devicetree flags define active-low or active-high
-polarity. The ISR only reschedules one static delayable item on Zephyr's system
-workqueue. After the configurable debounce interval, work reads the logical
-level. One stable released-to-pressed transition counts, holding does not
-recount, and a stable release rearms the next press. Initialization is
-serialized and schedules the same debounced sample after interrupts are
-enabled, reconciling any transition that occurred during GPIO setup.
+The source resolves `kfsw,boton-test-button` and names no board, MCU, GPIO
+controller or pin. A target overlay maps that chosen phandle onto a real GPIO
+node, and the devicetree flags decide active-low or active-high.
 
-The module owns `press_count`, `last_press_s`, and independent green, blue, and
-red LED booleans. All start at zero/off on every boot and are neither
-persistent nor dynamically allocated. `press_count`
-saturates at `UINT32_MAX`; accepted presses still update `last_press_s` after
-saturation. Monotonic milliseconds from `kfsw-platform` are divided by 1000
-with floor semantics, and the 32-bit seconds value also saturates rather than
-wrapping after approximately 136 years.
+The ISR does one thing: reschedule a static delayable item on the system
+workqueue. After the debounce interval the work reads the logical level. One
+stable released-to-pressed transition counts, holding does not count again, and
+a stable release rearms. Initialisation schedules that same sample after
+interrupts are enabled, so a transition during GPIO setup is not lost.
 
-`kfsw_boton_test_get_status()` copies all five fields under one short mutex so a
-future Housekeeping collector can consume a consistent typed snapshot without
-GPIO access or PARAM lookup. The module creates no thread and allocates no
-memory dynamically. PARAM/CSP provides generic remote observation but is not
-called by the button ISR or work handler.
+It owns `press_count`, `last_press_s`, and independent green, blue and red LED
+booleans. All start at zero on every boot; none persist; nothing is allocated
+dynamically and no thread is created. `press_count` saturates at `UINT32_MAX`
+rather than wrapping, and an accepted press still updates `last_press_s` after
+that. Seconds come from platform monotonic milliseconds divided by 1000, and
+also saturate rather than wrapping after about 136 years.
 
-The current PARAM definition model reads raw owner-backed scalars rather than
-calling an owner getter. Each button entry is therefore an independent,
-naturally aligned 32-bit view; it is not a coherent two-field snapshot and on
-the tested targets relies on single-copy 32-bit access rather than a shared
-formal C synchronization primitive. The typed API is the synchronized
-interface for multi-field consumers. A future generic PARAM owner-read
-callback would close that service-level limitation without duplicating state.
+`kfsw_boton_test_get_status()` copies all five fields under one short mutex, so
+a consumer that needs them to agree with each other gets a consistent snapshot
+without touching GPIO or the parameter service. The parameter entries are
+independent 32-bit views of the same state — fine for observing one value,
+which is what they are for, but the typed API is what a multi-field consumer
+should use.
 
-The first physical mapping is the NUCLEO-L496ZG blue USER button plus its three
-independent user LEDs: `led0`/LD1 green, `led1`/LD2 blue, and `led2`/LD3 red.
-The reusable module resolves only composition-selected nodes and uses their
-Devicetree GPIO polarity flags. Native state, PARAM, saturation, shell, and
-GPIO-emulator tests do not require that board. Physical bench evidence remains
-a separate, user-driven acceptance step.
+The first physical mapping is the NUCLEO-L496ZG USER button with its three
+LEDs: `led0`/LD1 green, `led1`/LD2 blue, `led2`/LD3 red. State, parameter,
+saturation, shell and GPIO-emulator tests all run without that board; physical
+evidence is a separate step with someone watching.
 
-## Module ownership pattern
+## Owning parameters
 
-A module may own its public interface, parameters and their semantics, health
-reporting, concrete implementations, optional shell integration, and tests.
-Only create the directories that a real module needs.
+A module defines its own `struct kfsw_param_definition` entries, groups them in
+a `struct kfsw_param_definition_set`, and the composition adds that set when
+the module is enabled. Contributing one must never require editing
+`parameter.c`, adding a dependency from the parameter service to a module, or
+making a module aware of CSP.
 
-For example, a module may follow this conceptual ownership pattern:
+Values are addressed by **table and offset**, and the table number says who
+owns it. Modules use **50 to 99**; 1 to 24 are core and 25 to 49 are services.
+Within its own table a module chooses offsets freely, so adding a value never
+touches a registry anyone else shares — the only thing that has to stay unique
+across the project is the table number.
+
+| Table | Module | Values |
+| --- | --- | --- |
+| 50 | `radio-uhf` | 6, read-only |
+| 67 | `boton-test`, as `hw_test` | 5: two counters, three LED controls |
+
+Aggregation rejects a duplicate name or address with `-EEXIST`, so a collision
+fails at startup rather than silently shadowing something.
+
+## Module shape
+
+A module may own its public interface, its parameters and what they mean, its
+health reporting, its concrete implementations, its shell command and its
+tests:
 
 ```text
 radio-uhf/
   interface
-  param_uhf
+  parameters
   health
   holybro/
     implementation
 ```
 
-Only directories backed by implemented behavior are created. `radio-uhf`
-currently needs interface/status and Holybro implementation sources; it does
-not create empty parameter or health subsystems. `boton-test` keeps its owner
-state/API and GPIO adapter separate so native tests can exercise semantics
-without a physical input.
-
-## Parameter ownership
-
-An owning module defines its static `struct kfsw_param_definition` entries and
-groups them in an exposed `struct kfsw_param_definition_set`. The executable
-composition adds that set when the module is enabled.
-
-This keeps definition and semantic ownership in the module while preserving
-the existing boundaries:
-
-- `KFSW_PARAM` owns aggregation, lookup, get/set, validation execution, and
-  enumeration;
-- `KFSW_PARAM_PERSISTENCE` owns the KPAR persistence mechanism; and
-- `KFSW_PARAM_CSP` owns remote CSP exposure.
-
-Contributing a module definition set must not require editing `parameter.c`,
-adding a PARAM-to-module dependency, or making the module aware of CSP.
-
-K-FSW uses one global 16-bit parameter-ID namespace. IDs are assigned as the
-lowest unused value across production and reserved test definitions and are
-never recycled. Existing assignments are:
-
-| ID | Definition | Owner/status |
-| --- | --- | --- |
-| 0 | `node_id` | application composition |
-| 1 | `log_level` | logging service |
-| 2–5 | test fixtures | reserved even when disabled |
-| 6 | `press_count` | `boton_test`, read-only, non-persistent |
-| 7 | `last_press_s` | `boton_test`, read-only, non-persistent |
-| 8 | `led_green` | `boton_test`, writable boolean, non-persistent |
-| 9 | `led_blue` | `boton_test`, writable boolean, non-persistent |
-| 10 | `led_red` | `boton_test`, writable boolean, non-persistent |
-
-The registry and review policy keep assignments stable; PARAM aggregation
-rejects any duplicate ID or name with `-EEXIST` as the executable collision
-guard. Numeric allocation is central, while each actual definition remains in
-its semantic owner.
+Create only the directories a real module needs. `radio-uhf` has an interface,
+a table and a Holybro implementation, and no health directory, because it has
+nothing to report yet. `boton-test` keeps its owner state and its GPIO adapter
+apart so the semantics can be tested without a physical input.
