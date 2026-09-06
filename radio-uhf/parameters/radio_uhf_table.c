@@ -9,11 +9,10 @@
  * Everything the module knows, published so an operator can confirm what a node
  * expects of its radio without reading the build.
  *
- * Read-only throughout, and deliberately honest about what these values are:
- * the module selects an implementation at build time and does not configure or
- * interrogate the modem. link_state stays unknown unless the implementation can
- * actually read it back, because reporting a link as up on no evidence is worse
- * than admitting it is not known.
+ * Read-only throughout: the module picks an implementation at build time and
+ * neither configures nor interrogates the modem. link_state stays unknown
+ * unless it can be read back, because claiming a link is up on no evidence is
+ * worse than admitting it is not known.
  */
 
 #define KFSW_RADIO_UHF_NAME_SIZE 24U
