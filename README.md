@@ -48,6 +48,7 @@ across the project is the table number.
 | Table | Module | Values |
 | --- | --- | --- |
 | 50 | `radio-uhf` | 6, read-only |
+| 51 | `temperature-sensor-example`, as `temp_example` | 5, read-only |
 | 67 | `boton-test`, as `hw_test` | 5: two counters, three LED controls |
 
 A duplicate name or address is refused at startup rather than silently
@@ -108,6 +109,25 @@ for watching one value, which is what they are for.
 The first physical mapping is the STM32 Nucleo USER button with its three LEDs.
 State, settings, saturation, shell and GPIO-emulator tests all run without that
 board; physical evidence is a separate step with someone watching.
+
+## temperature-sensor-example
+
+The worked example of a sensor behind a parameter table, and the first thing in
+the project to call the Zephyr sensor API at all. On a NUCLEO-L496ZG it reads
+the factory-calibrated die temperature on ADC1 channel 17, so it needs no
+wiring and gives housekeeping something physical to collect — a value a person
+can change by putting a finger on the chip, which no counter can do.
+
+Two things it is careful about. Reading the ADC takes a driver mutex and
+parameter sample callbacks run under the table lock, so the module polls on its
+own schedule and the table only ever copies a cached reading. And a read that
+fails drops the last good number rather than keeping it: `temp_mcu_mc` becomes
+a reserved value far outside anything a die survives, `temp_valid` goes to
+zero, and `temp_failures` counts. A stale temperature served forever reads
+exactly like a working sensor.
+
+It reports the die, not the board and not the air around it, and the absolute
+accuracy is a few degrees. Read it as a trend.
 
 ## Module shape
 
