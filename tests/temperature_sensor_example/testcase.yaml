@@ -1,0 +1,13 @@
+tests:
+  kfsw.modules.temperature_sensor_example:
+    tags:
+      - kfsw
+      - modules
+      - sensor
+      - parameter
+    platform_allow:
+      - native_sim/native/64
+    integration_platforms:
+      - native_sim/native/64
+    extra_configs:
+      - CONFIG_KFSW_TEMP_EXAMPLE_SENSOR=n
