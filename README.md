@@ -35,9 +35,8 @@ not enable anything: there is no plugin manager and no central registry.
 ## Owning settings
 
 A module defines its own settings, groups them, and the composition adds that
-group when the module is enabled. Contributing one must never require editing
-the parameter service, adding a dependency from that service to a module, or
-making a module aware of CSP.
+group when the module is enabled. Settings stay with their owner; the parameter
+service has no dependency on individual modules.
 
 Settings are addressed by **table and offset**, and the table number says who
 owns it. Modules use **50 to 99**; 1 to 24 are core and 25 to 49 are services.
@@ -47,7 +46,7 @@ across the project is the table number.
 
 | Table | Module | Values |
 | --- | --- | --- |
-| 50 | `radio-uhf` | 6, read-only |
+| 50 | `radio-uhf` | Identity, status, optional local encryption settings |
 | 51 | `temperature-sensor-example`, as `temp_example` | 5, read-only |
 | 67 | `boton-test`, as `hw_test` | 5: two counters, three LED controls |
 
@@ -64,6 +63,16 @@ and the link state stays `unknown`.
 
 The target devicetree owns the UART and its pins, and `kfsw-comms` owns the
 data path. The expected baud defaults to 57600.
+
+`CONFIG_KFSW_RADIO_UHF_CRYPTO` adds AES-256-GCM on flight and ground.
+Set `uhf_key_hex` locally with a random 64-digit hex key; reads return empty.
+`uhf_encrypt_enable`, `uhf_encrypt_tx`, and `uhf_encrypt_rx` control protection.
+Settings are saved by the radio module. Check `uhf_crypto_error`, then use
+`uhf connect` and `uhf status` to establish and inspect the sessions.
+
+Fresh authenticated handshakes and packet counters reject replay after reset.
+The generic UART codec runs receive work outside the interrupt handler and
+keeps libcsp's KISS framing. No modem settings are changed.
 
 There is no writable TX power, network ID or air rate, because the module
 cannot apply one — a setting that accepts a write and does nothing is worse

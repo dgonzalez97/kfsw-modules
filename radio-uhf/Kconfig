@@ -38,4 +38,26 @@ config KFSW_RADIO_UHF_SHELL
 	  Add the small `uhf status` diagnostic command. It reports only selected
 	  implementation and configured expectations; it does not probe RF state.
 
+config KFSW_RADIO_UHF_CRYPTO
+	bool "Authenticated AES-256 radio link"
+	depends on KFSW_CSP_KISS_UART && KFSW_PARAM && KFSW_STORAGE
+	select KFSW_CSP_UART_CODEC
+	select MBEDTLS
+	select MBEDTLS_PSA_CRYPTO_C
+	select MBEDTLS_PSA_STATIC_KEY_SLOTS
+	select PSA_WANT_KEY_TYPE_AES
+	select PSA_WANT_ALG_GCM
+	select PSA_WANT_KEY_TYPE_HMAC
+	select PSA_WANT_ALG_HMAC
+	select PSA_WANT_ALG_SHA_256
+	help
+	  Protect the selected UART link on both flight and ground. Provision a
+	  256-bit key locally. Fresh authenticated sessions reject old frames
+	  after reset without per-packet flash writes. Missing keys fail closed.
+
+config KFSW_RADIO_UHF_CRYPTO_INTERFACE
+	string "KISS interface connected to the radio"
+	depends on KFSW_RADIO_UHF_CRYPTO
+	default "KISS"
+
 endif # KFSW_RADIO_UHF
