@@ -136,3 +136,8 @@ health reporting, its concrete implementations, its shell command and its
 tests. Create only the directories a real module needs — `radio-uhf` has an
 interface, a table and a Holybro implementation, and no health directory,
 because it has nothing to report yet.
+
+## License
+
+Licensed under [Apache 2.0](LICENSE). Third-party dependencies retain their
+own licences.
