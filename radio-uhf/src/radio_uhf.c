@@ -71,10 +71,37 @@ static int cmd_uhf_status(const struct shell *sh, size_t argc, char **argv)
 		    info.hardware_status_available ? "available" : "unavailable");
 	shell_print(sh, "RF link: %s", kfsw_radio_uhf_link_state_name(info.link_state));
 
+#if CONFIG_KFSW_RADIO_UHF_CRYPTO
+	struct kfsw_radio_crypto_info crypto;
+	kfsw_radio_uhf_crypto_get(&crypto);
+	shell_print(sh, "protection: %s, TX %s, RX %s", crypto.enabled ? "enabled" : "disabled",
+		    crypto.encrypt_tx ? "encrypted" : "plain",
+		    crypto.encrypt_rx ? "required" : "plain");
+	shell_print(sh, "key: %s, sessions TX/RX: %u/%u, last error: %d",
+		    crypto.key_set ? "set" : "missing", crypto.tx_ready, crypto.rx_ready,
+		    crypto.last_error);
+	shell_print(sh, "authenticated: %u, rejected: %u, replays: %u", crypto.authenticated,
+		    crypto.rejected, crypto.replays);
+#endif
+
 	return 0;
 }
 
+#if CONFIG_KFSW_RADIO_UHF_CRYPTO
+static int cmd_uhf_connect(const struct shell *sh, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc);
+	ARG_UNUSED(argv);
+	int result = kfsw_radio_uhf_crypto_connect();
+	shell_print(sh, "Radio session request: %d", result);
+	return result;
+}
+#endif
+
 SHELL_STATIC_SUBCMD_SET_CREATE(uhf_commands,
+#if CONFIG_KFSW_RADIO_UHF_CRYPTO
+    SHELL_CMD_ARG(connect, NULL, "Establish radio sessions with the configured peer.", cmd_uhf_connect, 1, 0),
+#endif
 	SHELL_CMD_ARG(status, NULL, "Show configured UHF radio identity and status.",
 		      cmd_uhf_status, 1, 0),
 	SHELL_SUBCMD_SET_END);

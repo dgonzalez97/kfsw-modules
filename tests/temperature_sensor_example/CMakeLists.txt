@@ -11,3 +11,5 @@ target_link_libraries(app PRIVATE
     kfsw::temperature_sensor_example
     kfsw::services
 )
+
+zephyr_link_libraries(-Wl,--wrap=kfsw_time_monotonic_ms)

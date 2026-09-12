@@ -48,6 +48,29 @@ int kfsw_radio_uhf_get_info(struct kfsw_radio_uhf_info *info);
 /** Return a stable printable label for a UHF RF-link state. */
 const char *kfsw_radio_uhf_link_state_name(enum kfsw_radio_uhf_link_state state);
 
+#if CONFIG_KFSW_RADIO_UHF_CRYPTO
+/** Radio protection state; keys are never returned through this API. */
+struct kfsw_radio_crypto_info {
+	bool enabled;
+	bool encrypt_tx;
+	bool encrypt_rx;
+	bool key_set;
+	bool tx_ready;
+	bool rx_ready;
+	uint32_t authenticated;
+	uint32_t rejected;
+	uint32_t replays;
+	int last_error;
+};
+
+/** Restore radio settings and register protection before CSP initialization. */
+int kfsw_radio_uhf_crypto_init(void);
+/** Copy protection status and counters. Never exposes key material. */
+void kfsw_radio_uhf_crypto_get(struct kfsw_radio_crypto_info *info);
+/** Start a fresh outbound session with the configured radio peer. */
+int kfsw_radio_uhf_crypto_connect(void);
+#endif
+
 #if CONFIG_KFSW_PARAM
 /** Parameter table owned by this module, in the module band. */
 #define KFSW_RADIO_UHF_PARAM_TABLE_ID 50U

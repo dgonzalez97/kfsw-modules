@@ -1,4 +1,8 @@
 #include <stdint.h>
+#include <string.h>
+#if CONFIG_KFSW_RADIO_UHF_CRYPTO
+#include "radio_crypto_internal.h"
+#endif
 
 #include <zephyr/sys/util.h>
 
@@ -75,6 +79,39 @@ RADIO_SAMPLE(expected_flow_control, uint8_t)
 RADIO_SAMPLE(status_available, uint8_t)
 RADIO_SAMPLE(link_state, uint8_t)
 
+#if CONFIG_KFSW_RADIO_UHF_CRYPTO
+static char key_hex[65];
+static struct kfsw_radio_crypto_info crypto_info;
+static uint8_t crypto_enable = 1, crypto_tx = 1, crypto_rx = 1;
+static uint8_t crypto_key_set, crypto_tx_ready, crypto_rx_ready;
+static uint32_t crypto_authenticated, crypto_rejected, crypto_replays;
+static int32_t crypto_error;
+
+static void key_changed(const char *text)
+{
+	radio_crypto_set_key(text);
+	radio_crypto_clear(key_hex, sizeof(key_hex));
+}
+
+#define CRYPTO_SAMPLE(name, field, type)                                                           \
+	static void sample_crypto_##name(void *value)                                              \
+	{                                                                                          \
+		kfsw_radio_uhf_crypto_get(&crypto_info);                                           \
+		*(type *)value = (type)crypto_info.field;                                          \
+	}
+
+CRYPTO_SAMPLE(enable, enabled, uint8_t)
+CRYPTO_SAMPLE(tx, encrypt_tx, uint8_t)
+CRYPTO_SAMPLE(rx, encrypt_rx, uint8_t)
+CRYPTO_SAMPLE(key_set, key_set, uint8_t)
+CRYPTO_SAMPLE(tx_ready, tx_ready, uint8_t)
+CRYPTO_SAMPLE(rx_ready, rx_ready, uint8_t)
+CRYPTO_SAMPLE(authenticated, authenticated, uint32_t)
+CRYPTO_SAMPLE(rejected, rejected, uint32_t)
+CRYPTO_SAMPLE(replays, replays, uint32_t)
+CRYPTO_SAMPLE(error, last_error, int32_t)
+#endif
+
 static const struct kfsw_param_definition radio_uhf_param_definitions[] = {
 	{
 		.offset = 0x00U,
@@ -136,6 +173,112 @@ static const struct kfsw_param_definition radio_uhf_param_definitions[] = {
 		.value = &radio_link_state,
 		.sample = sample_link_state,
 	},
+#if CONFIG_KFSW_RADIO_UHF_CRYPTO
+	{
+		.offset = 0x50U,
+		.type = KFSW_PARAM_STRING,
+		.capacity = sizeof(key_hex),
+		.flags = KFSW_PARAM_FLAG_CONFIGURATION | KFSW_PARAM_FLAG_LOCAL_ONLY,
+		.name = "uhf_key_hex",
+		.description = "Local 64-digit hex key; reads return empty",
+		.value = key_hex,
+		.validate_text = radio_crypto_validate_key,
+		.changed_text = key_changed,
+	},
+	{
+		.offset = 0x98U,
+		.type = KFSW_PARAM_U8,
+		.flags = KFSW_PARAM_FLAG_CONFIGURATION | KFSW_PARAM_FLAG_LOCAL_ONLY,
+		.name = "uhf_encrypt_enable",
+		.description = "Enable radio packet protection",
+		.value = &crypto_enable,
+		.default_value.u8 = 1,
+		.validate = radio_crypto_validate_switch,
+		.changed = radio_crypto_set_enable,
+		.sample = sample_crypto_enable,
+	},
+	{
+		.offset = 0x99U,
+		.type = KFSW_PARAM_U8,
+		.flags = KFSW_PARAM_FLAG_CONFIGURATION | KFSW_PARAM_FLAG_LOCAL_ONLY,
+		.name = "uhf_encrypt_tx",
+		.description = "Encrypt transmitted radio packets",
+		.value = &crypto_tx,
+		.default_value.u8 = 1,
+		.validate = radio_crypto_validate_switch,
+		.changed = radio_crypto_set_tx,
+		.sample = sample_crypto_tx,
+	},
+	{
+		.offset = 0x9aU,
+		.type = KFSW_PARAM_U8,
+		.flags = KFSW_PARAM_FLAG_CONFIGURATION | KFSW_PARAM_FLAG_LOCAL_ONLY,
+		.name = "uhf_encrypt_rx",
+		.description = "Require authenticated encrypted radio packets",
+		.value = &crypto_rx,
+		.default_value.u8 = 1,
+		.validate = radio_crypto_validate_switch,
+		.changed = radio_crypto_set_rx,
+		.sample = sample_crypto_rx,
+	},
+	{
+		.offset = 0x9bU,
+		.type = KFSW_PARAM_U8,
+		.flags = KFSW_PARAM_FLAG_READ_ONLY,
+		.name = "uhf_key_set",
+		.value = &crypto_key_set,
+		.sample = sample_crypto_key_set,
+	},
+	{
+		.offset = 0x9cU,
+		.type = KFSW_PARAM_U8,
+		.flags = KFSW_PARAM_FLAG_READ_ONLY,
+		.name = "uhf_tx_ready",
+		.value = &crypto_tx_ready,
+		.sample = sample_crypto_tx_ready,
+	},
+	{
+		.offset = 0x9dU,
+		.type = KFSW_PARAM_U8,
+		.flags = KFSW_PARAM_FLAG_READ_ONLY,
+		.name = "uhf_rx_ready",
+		.value = &crypto_rx_ready,
+		.sample = sample_crypto_rx_ready,
+	},
+	{
+		.offset = 0xa0U,
+		.type = KFSW_PARAM_U32,
+		.flags = KFSW_PARAM_FLAG_READ_ONLY,
+		.name = "uhf_authenticated",
+		.value = &crypto_authenticated,
+		.sample = sample_crypto_authenticated,
+	},
+	{
+		.offset = 0xa4U,
+		.type = KFSW_PARAM_U32,
+		.flags = KFSW_PARAM_FLAG_READ_ONLY,
+		.name = "uhf_rejected",
+		.value = &crypto_rejected,
+		.sample = sample_crypto_rejected,
+	},
+	{
+		.offset = 0xa8U,
+		.type = KFSW_PARAM_U32,
+		.flags = KFSW_PARAM_FLAG_READ_ONLY,
+		.name = "uhf_replays",
+		.value = &crypto_replays,
+		.sample = sample_crypto_replays,
+	},
+	{
+		.offset = 0xacU,
+		.type = KFSW_PARAM_I32,
+		.flags = KFSW_PARAM_FLAG_READ_ONLY,
+		.name = "uhf_crypto_error",
+		.value = &crypto_error,
+		.sample = sample_crypto_error,
+	},
+#endif
+
 };
 
 const struct kfsw_param_definition_set kfsw_radio_uhf_param_definitions = {

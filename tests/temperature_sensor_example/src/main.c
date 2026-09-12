@@ -18,6 +18,19 @@
 #define TEMP_LAST_MS_OFFSET 0x0cU
 #define TEMP_VALID_OFFSET 0x10U
 
+static uint64_t now_ms;
+
+uint64_t __wrap_kfsw_time_monotonic_ms(void)
+{
+	return now_ms;
+}
+
+static void store_reading(int32_t milli_c, uint64_t timestamp)
+{
+	now_ms = timestamp;
+	kfsw_temp_example_store(milli_c, timestamp);
+}
+
 static int32_t read_i32(uint8_t offset)
 {
 	struct kfsw_param_value value;
@@ -73,7 +86,7 @@ ZTEST(temp_example, test_starts_absent_not_cold)
 
 ZTEST(temp_example, test_reading_reaches_the_table)
 {
-	kfsw_temp_example_store(23500, 12345U);
+	store_reading(23500, 12345U);
 
 	zassert_equal(read_i32(TEMP_MILLI_C_OFFSET), 23500);
 	zassert_equal(read_u32(TEMP_LAST_MS_OFFSET), 12345U);
@@ -85,7 +98,7 @@ ZTEST(temp_example, test_negative_reading_survives_the_table)
 	/* A signed table entry is worth having only if it carries a sign, and
 	 * a die below freezing is the ordinary case in eclipse.
 	 */
-	kfsw_temp_example_store(-14250, 1U);
+	store_reading(-14250, 1U);
 
 	zassert_equal(read_i32(TEMP_MILLI_C_OFFSET), -14250);
 	zassert_equal(read_u8(TEMP_VALID_OFFSET), 1U);
@@ -95,7 +108,7 @@ ZTEST(temp_example, test_failure_drops_the_stale_reading)
 {
 	uint32_t failures_before;
 
-	kfsw_temp_example_store(30000, 100U);
+	store_reading(30000, 100U);
 	zassert_equal(read_i32(TEMP_MILLI_C_OFFSET), 30000);
 	failures_before = read_u32(TEMP_FAILURES_OFFSET);
 
@@ -112,8 +125,8 @@ ZTEST(temp_example, test_counters_separate_success_from_failure)
 	uint32_t samples_before = read_u32(TEMP_SAMPLES_OFFSET);
 	uint32_t failures_before = read_u32(TEMP_FAILURES_OFFSET);
 
-	kfsw_temp_example_store(1000, 1U);
-	kfsw_temp_example_store(2000, 2U);
+	store_reading(1000, 1U);
+	store_reading(2000, 2U);
 	kfsw_temp_example_store_failure();
 
 	zassert_equal(read_u32(TEMP_SAMPLES_OFFSET), samples_before + 2U);
@@ -141,3 +154,27 @@ ZTEST(temp_example, test_rejects_a_null_destination)
 }
 
 ZTEST_SUITE(temp_example, NULL, temp_example_setup, NULL, NULL, NULL);
+
+ZTEST(temp_example, test_age_limit_and_recovery_across_uptime_wrap)
+{
+	struct kfsw_temp_example_reading reading;
+	uint64_t timestamp = (uint64_t)UINT32_MAX - 5U;
+
+	store_reading(25000, timestamp);
+	now_ms += CONFIG_KFSW_TEMP_EXAMPLE_MAX_AGE_MS;
+	zassert_ok(kfsw_temp_example_get(&reading));
+	zassert_true(reading.valid);
+	now_ms++;
+	zassert_ok(kfsw_temp_example_get(&reading));
+	zassert_false(reading.valid);
+	zassert_equal(reading.milli_c, KFSW_TEMP_EXAMPLE_INVALID_MILLI_C);
+	zassert_equal(reading.last_uptime_ms, (uint32_t)timestamp);
+
+	now_ms += (UINT64_C(1) << 32);
+	zassert_ok(kfsw_temp_example_get(&reading));
+	zassert_false(reading.valid);
+	store_reading(27000, now_ms);
+	zassert_ok(kfsw_temp_example_get(&reading));
+	zassert_true(reading.valid);
+	zassert_equal(reading.milli_c, 27000);
+}
