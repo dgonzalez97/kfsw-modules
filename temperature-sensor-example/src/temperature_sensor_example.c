@@ -22,14 +22,16 @@
 static struct kfsw_temp_example_reading cached = {
 	.milli_c = KFSW_TEMP_EXAMPLE_INVALID_MILLI_C,
 };
-static struct k_mutex cache_lock;
+static K_MUTEX_DEFINE(cache_lock);
 static bool initialized;
+static uint64_t last_success_ms;
 
-void kfsw_temp_example_store(int32_t milli_c, uint32_t monotonic_ms)
+void kfsw_temp_example_store(int32_t milli_c, uint64_t monotonic_ms)
 {
 	(void)k_mutex_lock(&cache_lock, K_FOREVER);
 	cached.milli_c = milli_c;
-	cached.last_uptime_ms = monotonic_ms;
+	cached.last_uptime_ms = (uint32_t)monotonic_ms;
+	last_success_ms = monotonic_ms;
 	cached.valid = true;
 	if (cached.samples < UINT32_MAX) {
 		cached.samples++;
@@ -52,6 +54,8 @@ void kfsw_temp_example_store_failure(void)
 }
 
 #if CONFIG_KFSW_TEMP_EXAMPLE_SENSOR
+static struct k_work_q sensor_queue;
+static K_THREAD_STACK_DEFINE(sensor_stack, CONFIG_KFSW_TEMP_EXAMPLE_STACK_SIZE);
 static void poll_work_handler(struct k_work *work);
 static K_WORK_DELAYABLE_DEFINE(poll_work, poll_work_handler);
 
@@ -65,7 +69,7 @@ static int sample_once(void)
 		kfsw_temp_example_store_failure();
 		return result;
 	}
-	kfsw_temp_example_store(milli_c, (uint32_t)kfsw_time_monotonic_ms());
+	kfsw_temp_example_store(milli_c, kfsw_time_monotonic_ms());
 	return 0;
 }
 
@@ -74,33 +78,33 @@ static void poll_work_handler(struct k_work *work)
 	ARG_UNUSED(work);
 
 	(void)sample_once();
-	(void)k_work_reschedule(&poll_work, K_MSEC(CONFIG_KFSW_TEMP_EXAMPLE_PERIOD_MS));
+	(void)k_work_reschedule_for_queue(&sensor_queue, &poll_work,
+					  K_MSEC(CONFIG_KFSW_TEMP_EXAMPLE_PERIOD_MS));
 }
 #endif
 
 int kfsw_temp_example_init(void)
 {
-	int result = 0;
-
+	k_mutex_lock(&cache_lock, K_FOREVER);
 	if (initialized) {
+		k_mutex_unlock(&cache_lock);
 		return 0;
 	}
-	(void)k_mutex_init(&cache_lock);
-	initialized = true;
 
 #if CONFIG_KFSW_TEMP_EXAMPLE_SENSOR
-	result = kfsw_temp_example_sensor_prepare();
+	int result = kfsw_temp_example_sensor_prepare();
 	if (result != 0) {
-		initialized = false;
+		k_mutex_unlock(&cache_lock);
 		return result;
 	}
-	/* Read once here so a successful init means the sensor answered, and
-	 * the first housekeeping collection does not have to wait a period.
-	 */
-	result = sample_once();
-	(void)k_work_reschedule(&poll_work, K_MSEC(CONFIG_KFSW_TEMP_EXAMPLE_PERIOD_MS));
+	k_work_queue_start(&sensor_queue, sensor_stack, K_THREAD_STACK_SIZEOF(sensor_stack),
+			   CONFIG_KFSW_TEMP_EXAMPLE_PRIORITY, NULL);
+	(void)k_thread_name_set(&sensor_queue.thread, "kfsw_temp");
+	(void)k_work_reschedule_for_queue(&sensor_queue, &poll_work, K_NO_WAIT);
 #endif
-	return result;
+	initialized = true;
+	k_mutex_unlock(&cache_lock);
+	return 0;
 }
 
 int kfsw_temp_example_get(struct kfsw_temp_example_reading *reading)
@@ -108,11 +112,19 @@ int kfsw_temp_example_get(struct kfsw_temp_example_reading *reading)
 	if (reading == NULL) {
 		return -EINVAL;
 	}
+	k_mutex_lock(&cache_lock, K_FOREVER);
 	if (!initialized) {
+		k_mutex_unlock(&cache_lock);
 		return -EACCES;
 	}
-	(void)k_mutex_lock(&cache_lock, K_FOREVER);
 	*reading = cached;
+	uint64_t now = kfsw_time_monotonic_ms();
+
+	if (reading->valid && ((now < last_success_ms) ||
+			       (now - last_success_ms > CONFIG_KFSW_TEMP_EXAMPLE_MAX_AGE_MS))) {
+		reading->valid = false;
+		reading->milli_c = KFSW_TEMP_EXAMPLE_INVALID_MILLI_C;
+	}
 	k_mutex_unlock(&cache_lock);
 	return 0;
 }

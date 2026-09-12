@@ -27,6 +27,28 @@ config KFSW_TEMP_EXAMPLE_PERIOD_MS
 	  the cache, so this is the real age of a sample rather than the report
 	  period: collecting faster than this repeats a reading.
 
+config KFSW_TEMP_EXAMPLE_MAX_AGE_MS
+	int "Maximum cached reading age in milliseconds"
+	range 100 7200000
+	default 3000
+	help
+	  Older readings are returned as invalid without accessing the sensor.
+	  Set this above the poll interval plus the permitted conversion delay.
+
+config KFSW_TEMP_EXAMPLE_STACK_SIZE
+	int "Sensor workqueue stack size"
+	depends on KFSW_TEMP_EXAMPLE_SENSOR
+	range 1024 8192
+	default 1536
+
+config KFSW_TEMP_EXAMPLE_PRIORITY
+	int "Sensor workqueue priority"
+	depends on KFSW_TEMP_EXAMPLE_SENSOR
+	range 2 15
+	default 5
+	help
+	  Use a lower scheduling priority than the CSP router and health work.
+
 config KFSW_TEMP_EXAMPLE_SHELL
 	bool "Temperature example shell command"
 	depends on SHELL

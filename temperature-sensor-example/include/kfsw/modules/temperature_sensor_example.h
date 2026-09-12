@@ -43,20 +43,19 @@ struct kfsw_temp_example_reading {
 	uint32_t samples;
 	/** Reads that returned an error. */
 	uint32_t failures;
-	/** Monotonic milliseconds of the latest successful read, 0 before one. */
+	/** Low 32 bits of monotonic milliseconds at the latest successful read. */
 	uint32_t last_uptime_ms;
-	/** Whether milli_c came from a sensor rather than the reserved value. */
+	/** Whether milli_c is a successful reading within the maximum age. */
 	bool valid;
 };
 
 /**
  * Initialize the module and, when one is composed, bind and start the sensor.
  *
- * The first reading is taken here, so a caller that gets 0 back has evidence
- * the sensor answers rather than a promise that it might.
+ * Queues the first reading on the module's workqueue. The cache stays invalid
+ * until that read completes; initialization does not wait for a conversion.
  *
- * @return 0 on success, -EACCES when the sensor device is not ready, or a
- *         negative errno value from the first read.
+ * @return 0 when initialized, or a negative errno if the sensor cannot be bound.
  */
 int kfsw_temp_example_init(void);
 
@@ -65,6 +64,7 @@ int kfsw_temp_example_init(void);
  *
  * Cheap: this returns what the poller last stored and never touches the ADC,
  * so it is safe from a parameter sample callback.
+ * Readings older than CONFIG_KFSW_TEMP_EXAMPLE_MAX_AGE_MS are returned as invalid.
  *
  * @param reading Destination.
  * @return 0 on success, -EINVAL for a NULL destination, or -EACCES before
