@@ -251,7 +251,13 @@ static const struct kfsw_param_definition boton_test_param_definitions[] = {
 	{
 		.offset = 0x08U,
 		.type = KFSW_PARAM_U8,
-		.flags = KFSW_PARAM_FLAG_DEBUG,
+		/* Live because the write applies the GPIO on its way in: the
+		 * service only infers the flag from a change callback, and
+		 * this module applies its value from validation so a hardware
+		 * failure can refuse the write. Without it a listing tells an
+		 * operator the LED needs a reboot to take effect.
+		 */
+		.flags = KFSW_PARAM_FLAG_DEBUG | KFSW_PARAM_FLAG_LIVE,
 		.name = "led_green",
 		.description = "Logical green developer LED state",
 		.value = &boton_test_status.led_green,
@@ -261,7 +267,13 @@ static const struct kfsw_param_definition boton_test_param_definitions[] = {
 	{
 		.offset = 0x09U,
 		.type = KFSW_PARAM_U8,
-		.flags = KFSW_PARAM_FLAG_DEBUG,
+		/* Live because the write applies the GPIO on its way in: the
+		 * service only infers the flag from a change callback, and
+		 * this module applies its value from validation so a hardware
+		 * failure can refuse the write. Without it a listing tells an
+		 * operator the LED needs a reboot to take effect.
+		 */
+		.flags = KFSW_PARAM_FLAG_DEBUG | KFSW_PARAM_FLAG_LIVE,
 		.name = "led_blue",
 		.description = "Logical blue developer LED state",
 		.value = &boton_test_status.led_blue,
@@ -271,7 +283,13 @@ static const struct kfsw_param_definition boton_test_param_definitions[] = {
 	{
 		.offset = 0x0aU,
 		.type = KFSW_PARAM_U8,
-		.flags = KFSW_PARAM_FLAG_DEBUG,
+		/* Live because the write applies the GPIO on its way in: the
+		 * service only infers the flag from a change callback, and
+		 * this module applies its value from validation so a hardware
+		 * failure can refuse the write. Without it a listing tells an
+		 * operator the LED needs a reboot to take effect.
+		 */
+		.flags = KFSW_PARAM_FLAG_DEBUG | KFSW_PARAM_FLAG_LIVE,
 		.name = "led_red",
 		.description = "Logical red developer LED state",
 		.value = &boton_test_status.led_red,
