@@ -72,7 +72,7 @@ int kfsw_radio_uhf_crypto_connect(void);
 #endif
 
 #if CONFIG_KFSW_PARAM
-/** Parameter table owned by this module, in the module band. */
+/** Parameter table of this module, in the module band. */
 #define KFSW_RADIO_UHF_PARAM_TABLE_ID 50U
 /** Stable logical name paired with KFSW_RADIO_UHF_PARAM_TABLE_ID. */
 #define KFSW_RADIO_UHF_PARAM_TABLE_NAME "radio_uhf"

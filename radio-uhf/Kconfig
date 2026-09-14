@@ -1,9 +1,8 @@
 menuconfig KFSW_RADIO_UHF
 	bool "K-FSW reusable UHF radio module"
 	help
-	  Enable the reusable UHF-radio identity, expected configuration, and
-	  bounded diagnostic API. Generic CSP, KISS, and UART data transport remain
-	  owned by kfsw-comms.
+	  Enable the UHF radio module: identity, expected configuration and
+	  status. The CSP, KISS and UART code is in kfsw-comms.
 
 if KFSW_RADIO_UHF
 
@@ -11,7 +10,7 @@ choice KFSW_RADIO_UHF_IMPLEMENTATION
 	prompt "UHF radio implementation"
 	default KFSW_RADIO_UHF_HOLYBRO
 	help
-	  Select exactly one physical UHF radio implementation at build time.
+	  Select the UHF radio implementation.
 
 config KFSW_RADIO_UHF_HOLYBRO
 	bool "Holybro SiK transparent serial radio"

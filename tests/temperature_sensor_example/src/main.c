@@ -9,9 +9,7 @@
 
 #include "temperature_sensor_example_internal.h"
 
-/* Offsets within table 51. The table makes them unique, so the same offsets
- * may appear in any other table.
- */
+/* Offsets within table 51. */
 #define TEMP_MILLI_C_OFFSET 0x00U
 #define TEMP_SAMPLES_OFFSET 0x04U
 #define TEMP_FAILURES_OFFSET 0x08U
@@ -78,9 +76,7 @@ ZTEST(temp_example, test_starts_absent_not_cold)
 	zassert_ok(kfsw_temp_example_get(&reading));
 	zassert_false(reading.valid);
 	zassert_equal(reading.milli_c, KFSW_TEMP_EXAMPLE_INVALID_MILLI_C);
-	/* The distinction the reserved value exists to make: an unread sensor
-	 * must not be indistinguishable from a spacecraft at exactly 0 C.
-	 */
+	/* An unread sensor must not look like a reading of 0 C. */
 	zassert_not_equal(reading.milli_c, 0);
 }
 
@@ -95,9 +91,7 @@ ZTEST(temp_example, test_reading_reaches_the_table)
 
 ZTEST(temp_example, test_negative_reading_survives_the_table)
 {
-	/* A signed table entry is worth having only if it carries a sign, and
-	 * a die below freezing is the ordinary case in eclipse.
-	 */
+	/* Readings below zero keep their sign. */
 	store_reading(-14250, 1U);
 
 	zassert_equal(read_i32(TEMP_MILLI_C_OFFSET), -14250);
@@ -114,7 +108,7 @@ ZTEST(temp_example, test_failure_drops_the_stale_reading)
 
 	kfsw_temp_example_store_failure();
 
-	/* Serving the last good number would read as a working sensor. */
+	/* A failed read must not keep the last good value. */
 	zassert_equal(read_i32(TEMP_MILLI_C_OFFSET), KFSW_TEMP_EXAMPLE_INVALID_MILLI_C);
 	zassert_equal(read_u8(TEMP_VALID_OFFSET), 0U);
 	zassert_equal(read_u32(TEMP_FAILURES_OFFSET), failures_before + 1U);
@@ -142,9 +136,7 @@ ZTEST(temp_example, test_table_is_registered_read_only)
 	zassert_equal(info.offset, TEMP_MILLI_C_OFFSET);
 	zassert_equal(info.type, KFSW_PARAM_I32);
 	zassert_true(info.read_only);
-	/* Housekeeping sizes a report from the declared width, so the width
-	 * being four bytes is part of the wire contract, not a detail.
-	 */
+	/* Housekeeping sizes reports from the declared width. */
 	zassert_equal(info.array_size, 1U);
 }
 

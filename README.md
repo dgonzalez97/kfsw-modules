@@ -1,150 +1,132 @@
 # K-FSW Modules
 
-Device and subsystem modules — the code that knows about a particular piece of
-hardware, as opposed to the generic mechanisms it runs on.
+Device and subsystem modules: the code for a specific piece of hardware, built
+on the K-FSW services, comms and platform layers.
 
-Two exist today: **`radio-uhf`**, a UHF equipment module with a Holybro SiK
-implementation, and **`boton-test`**, a deliberately small worked example of
-what owning hardware looks like. GNSS receivers, ADCS or EPS devices and
-payloads would belong here too; none are written.
+There are three: **`radio-uhf`**, a UHF radio module with a Holybro SiK
+implementation; **`boton-test`**, a small button and LED example; and
+**`temperature-sensor-example`**, a sensor read into a parameter table. GNSS
+receivers, ADCS or EPS devices and payloads would also go here.
 
-Full documentation is on the
-[K-FSW site](https://dgonzalez97.github.io/k-fsw/).
+Full documentation is on the [K-FSW site](https://dgonzalez97.github.io/k-fsw/).
 
-## What belongs here
+## Layers
 
-A module owns hardware. It does not own the mechanisms it uses to reach that
-hardware:
+A module handles one device or subsystem and uses the layers below it:
 
 ```text
-  kfsw-modules   ← this repository: a radio, a sensor, a subsystem
-       │  uses, never owns
-       ▼
+  kfsw-modules   this repository: a radio, a sensor, a subsystem
+       |  uses
+       v
   kfsw-services  log, param, files, events, commands, health, update
-  kfsw-comms     libcsp and the transports under it
+  kfsw-comms     libcsp and its transports
   kfsw-platform  time, storage, reset cause, watchdog
 ```
 
-Using a mechanism is not taking it over. The Holybro radio moves bytes over a
-transparent serial link, and doing so leaves UART, KISS, CSP and packet
-ownership exactly where they were.
+For example, the Holybro radio sends bytes over a transparent serial link, and
+the UART, KISS and CSP code stays in `kfsw-comms`.
 
-Each module is selected at compile time. Being present in the repository does
-not enable anything: there is no plugin manager and no central registry.
+Modules are selected at compile time. A module that is not enabled does
+nothing; there is no plugin manager or registry.
 
-## Owning settings
+## Settings
 
-A module defines its own settings, groups them, and the composition adds that
-group when the module is enabled. Settings stay with their owner; the parameter
-service has no dependency on individual modules.
+A module defines its own parameter table, and the application registers it when
+the module is enabled. The parameter service doesn't depend on any module.
 
-Settings are addressed by **table and offset**, and the table number says who
-owns it. Modules use **50 to 99**; 1 to 24 are core and 25 to 49 are services.
-Within its own table a module picks offsets freely, so adding a value never
-touches anything anyone else shares — the only thing that must stay unique
-across the project is the table number.
+Parameters are addressed by table and offset. Modules use tables 50 to 99;
+1 to 24 are core and 25 to 49 are services. Inside its table a module can use
+any offsets, and only the table number has to be unique.
 
 | Table | Module | Values |
 | --- | --- | --- |
-| 50 | `radio-uhf` | Identity, status, optional local encryption settings |
+| 50 | `radio-uhf` | Identity, status, optional encryption settings |
 | 51 | `temperature-sensor-example`, as `temp_example` | 5, read-only |
 | 67 | `boton-test`, as `hw_test` | 5: two counters, three LED controls |
 
-A duplicate name or address is refused at startup rather than silently
-shadowing something.
+A duplicate name or address is rejected at startup.
 
 ## radio-uhf and Holybro SiK
 
-The API reports the selected implementation, the hardware it expects, the
-serial contract it expects, whether live status can be read, and the RF link
-state. Most of that is a build-time fact rather than a readback: Holybro has no
-safe status query while the link is carrying traffic, so status is unavailable
-and the link state stays `unknown`.
+The API reports the selected implementation, the expected hardware and serial
+settings, whether live status can be read, and the RF link state. Most of this
+is fixed at build time: the Holybro has no safe status query while it carries
+traffic, so status is unavailable and the link state is `unknown`.
 
-The target devicetree owns the UART and its pins, and `kfsw-comms` owns the
-data path. The expected baud defaults to 57600.
+The target devicetree sets the UART and its pins, and `kfsw-comms` handles the
+data. The expected baud rate defaults to 57600.
 
-`CONFIG_KFSW_RADIO_UHF_CRYPTO` adds AES-256-GCM on flight and ground.
-Set `uhf_key_hex` locally with a random 64-digit hex key; reads return empty.
-`uhf_encrypt_enable`, `uhf_encrypt_tx`, and `uhf_encrypt_rx` control protection.
-Settings are saved by the radio module. Check `uhf_crypto_error`, then use
-`uhf connect` and `uhf status` to establish and inspect the sessions.
+`CONFIG_KFSW_RADIO_UHF_CRYPTO` adds AES-256-GCM on flight and ground. Set
+`uhf_key_hex` locally to a random 64-digit hex key; reading it back returns an
+empty value. `uhf_encrypt_enable`, `uhf_encrypt_tx` and `uhf_encrypt_rx` turn
+protection on, and the radio module saves them. Check `uhf_crypto_error`, then
+use `uhf connect` and `uhf status` to start and inspect the sessions.
 
-Fresh authenticated handshakes and packet counters reject replay after reset.
-The generic UART codec runs receive work outside the interrupt handler and
-keeps libcsp's KISS framing. No modem settings are changed.
+New authenticated handshakes and packet counters reject replayed packets, also
+after a reset. The UART codec runs outside the interrupt handler and keeps
+libcsp's KISS framing. No modem settings are changed.
 
-There is no writable TX power, network ID or air rate, because the module
-cannot apply one — a setting that accepts a write and does nothing is worse
-than no setting at all.
+TX power, network ID and air rate are not writable because the module can't
+apply them yet.
 
-SiK AT control is deferred for the reason that makes it hard: entering command
-mode interrupts the live serial path, and deciding who may do that and when is
-a design in itself. The module never issues `AT&W`, `AT&F` or `ATS...`, and
-never touches the verified `MAVLINK=1` setting.
+SiK AT commands are not supported yet. Entering command mode interrupts the
+serial link, so it needs its own design. The module never sends `AT&W`, `AT&F`
+or `ATS...` and doesn't change the `MAVLINK=1` setting.
 
-## boton-test, a worked example
+## boton-test
 
-`boton_test` exists to show the whole boundary for a small stateful hardware
-module at a size you can read in one sitting. Its operator-facing name is
-`hw_test`.
+`boton_test` is a small example of a hardware module with state. Its shell and
+parameter name is `hw_test`.
 
 ```text
-  chosen button ──► edge ISR ──► debounced work ──┐
-  chosen LEDs  ◄──► owner LED setter ◄──► shell   ├──► owner state
-                                                  │        │
-                                                  │        ▼
-                                                  └──► typed status API
+  button --> edge ISR --> debounce work ----+
+  LEDs  <--> LED setter <--> shell          +--> module state
+                                            |        |
+                                            |        v
+                                            +--> status API
 ```
 
-The source names no board, MCU, GPIO controller or pin — a target overlay maps
-a chosen phandle onto a real GPIO node, and the devicetree flags decide
+The source names no board, MCU, GPIO controller or pin. A target overlay maps
+the chosen properties to real GPIO nodes, and the devicetree flags set
 active-low or active-high.
 
-The ISR does one thing: reschedule a debounce. After the interval the work
-reads the logical level. One stable released-to-pressed transition counts,
-holding does not count again, and a stable release rearms. Initialisation
-schedules the same sample after interrupts are enabled, so a transition during
-GPIO setup is not lost.
+The ISR only reschedules the debounce work. After the debounce interval the
+work reads the button: a stable change from released to pressed counts once,
+holding doesn't count again, and a stable release re-arms it. Init runs the same
+check after enabling interrupts, so a press during GPIO setup is not lost.
 
-It owns a press count, the time of the last press, and three LED booleans. All
-start at zero on every boot; none persist; nothing is allocated dynamically and
-no thread is created. Counters saturate rather than wrapping.
+The module keeps a press count, the time of the last press and three LED
+states. They start at zero on every boot and are not saved. Nothing is
+allocated, no thread is created, and the counters saturate instead of wrapping.
 
-Reading all five fields at once goes through the typed status API, which copies
-them under one short lock — the individual settings are independent views, fine
-for watching one value, which is what they are for.
+The status API copies all five values under one lock. The parameters are read
+one at a time, which is fine for watching a single value.
 
-The first physical mapping is the STM32 Nucleo USER button with its three LEDs.
-State, settings, saturation, shell and GPIO-emulator tests all run without that
-board; physical evidence is a separate step with someone watching.
+The first hardware mapping is the NUCLEO USER button and its three LEDs. The
+state, settings, shell and GPIO emulator tests run without the board; the
+hardware test is in `k-fsw/tests/hil/boton-test/`.
 
 ## temperature-sensor-example
 
-The worked example of a sensor behind a parameter table, and the first thing in
-the project to call the Zephyr sensor API at all. On a NUCLEO-L496ZG it reads
-the factory-calibrated die temperature on ADC1 channel 17, so it needs no
-wiring and gives housekeeping something physical to collect — a value a person
-can change by putting a finger on the chip, which no counter can do.
+An example of a sensor read into a parameter table, and the first use of the
+Zephyr sensor API in the project. On a NUCLEO-L496ZG it reads the
+factory-calibrated die temperature on ADC1 channel 17, so it needs no wiring
+and gives housekeeping a real value to collect.
 
-Two things it is careful about. Reading the ADC takes a driver mutex and
-parameter sample callbacks run under the table lock, so the module polls on its
-own schedule and the table only ever copies a cached reading. And a read that
-fails drops the last good number rather than keeping it: `temp_mcu_mc` becomes
-a reserved value far outside anything a die survives, `temp_valid` goes to
-zero, and `temp_failures` counts. A stale temperature served forever reads
-exactly like a working sensor.
+Reading the ADC takes a driver mutex and sample callbacks run under the table
+lock, so the module polls on its own work queue and the table copies the cached
+reading. If a read fails, `temp_mcu_mc` is set to a reserved value far outside
+any real temperature, `temp_valid` goes to 0 and `temp_failures` increases.
 
-It reports the die, not the board and not the air around it, and the absolute
-accuracy is a few degrees. Read it as a trend.
+It measures the die, not the board or the air, and is only accurate to a few
+degrees, so use it as a trend.
 
-## Module shape
+## Module layout
 
-A module may own its public interface, its settings and what they mean, its
-health reporting, its concrete implementations, its shell command and its
-tests. Create only the directories a real module needs — `radio-uhf` has an
-interface, a table and a Holybro implementation, and no health directory,
-because it has nothing to report yet.
+A module can have a public interface, a parameter table, health reporting,
+implementations, a shell command and tests. Only create the directories you
+need: `radio-uhf` has an interface, a table and a Holybro implementation, but no
+health directory.
 
 ## License
 

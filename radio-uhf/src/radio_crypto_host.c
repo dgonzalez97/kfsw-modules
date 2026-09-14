@@ -3,8 +3,8 @@
 #include <stdint.h>
 #include <sys/random.h>
 
-/* Built by the native runner, with host headers rather than Zephyr's libc.
- * native_sim's default entropy driver is a repeatable test generator.
+/* Built with host headers, not Zephyr's libc. native_sim's default entropy
+ * driver is a repeatable test generator.
  */
 int kfsw_radio_host_random(void *data, size_t size)
 {

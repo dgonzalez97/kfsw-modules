@@ -6,13 +6,7 @@
 #include <kfsw/services/parameter.h>
 
 /*
- * The die temperature and the evidence needed to trust it. `temp_valid` and
- * `temp_failures` are the pair that separates a cold spacecraft from a sensor
- * that stopped answering, which the reading alone cannot say.
- *
- * Milli-degrees rather than a float: the wire is big-endian integers, ground
- * scales it for display, and nothing on board has to carry a soft-float
- * library to report a temperature.
+ * Die temperature in milli-degrees, with the valid flag and the failure count.
  */
 
 static int32_t temp_milli_c = KFSW_TEMP_EXAMPLE_INVALID_MILLI_C;

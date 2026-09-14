@@ -2,9 +2,8 @@ menuconfig KFSW_TEMPERATURE_SENSOR_EXAMPLE
 	bool "K-FSW temperature sensor example module"
 	depends on KFSW_PARAM
 	help
-	  Enable the worked example of a sensor behind a parameter table: a
-	  cached temperature reading, the counters that say whether to trust it,
-	  and read-only PARAM definitions a housekeeping report can name.
+	  Enable the temperature sensor example: a cached reading, read
+	  counters and read-only parameters for housekeeping.
 
 if KFSW_TEMPERATURE_SENSOR_EXAMPLE
 
@@ -12,10 +11,8 @@ config KFSW_TEMP_EXAMPLE_SENSOR
 	bool "Read a physical temperature sensor"
 	depends on SENSOR
 	help
-	  Bind the module to the sensor node selected by the composition's
-	  kfsw,die-temp Devicetree chosen property and poll it. Leave this
-	  disabled to build the cache and its PARAM table with no hardware,
-	  which is what the unit tests do.
+	  Poll the sensor selected by the kfsw,die-temp chosen property. Leave
+	  this off to build without hardware, as the unit tests do.
 
 config KFSW_TEMP_EXAMPLE_PERIOD_MS
 	int "Sensor polling interval in milliseconds"
@@ -23,9 +20,8 @@ config KFSW_TEMP_EXAMPLE_PERIOD_MS
 	range 100 3600000
 	default 1000
 	help
-	  How often the cached reading is refreshed. A housekeeping report reads
-	  the cache, so this is the real age of a sample rather than the report
-	  period: collecting faster than this repeats a reading.
+	  How often the cached reading is refreshed. Housekeeping reads the
+	  cache, so collecting faster than this repeats the same reading.
 
 config KFSW_TEMP_EXAMPLE_MAX_AGE_MS
 	int "Maximum cached reading age in milliseconds"

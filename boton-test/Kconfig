@@ -2,9 +2,8 @@ menuconfig KFSW_BOTON_TEST
 	bool "K-FSW boton_test example module"
 	depends on KFSW_PARAM
 	help
-	  Enable the reusable button example module. The module owns debounced
-	  press semantics, volatile runtime status, a typed status API, and its
-	  read-only PARAM definitions.
+	  Enable the button and LED example module: debounced presses, a status
+	  API and read-only parameters.
 
 if KFSW_BOTON_TEST
 
@@ -38,8 +37,6 @@ config KFSW_BOTON_TEST_SHELL
 	depends on SHELL
 	default y
 	help
-	  Add `boton_test status`, which reports the module's typed status
-	  snapshot, and `test led <green|blue|red> <on|off>`, which controls the
-	  same module-owned LED state exposed through PARAM.
+	  Add `boton_test status` and `test led <green|blue|red> <on|off>`.
 
 endif # KFSW_BOTON_TEST

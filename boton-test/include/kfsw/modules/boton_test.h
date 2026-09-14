@@ -10,14 +10,14 @@ extern "C" {
 
 struct kfsw_param_definition_set;
 
-/** Logical Housekeeping table reserved for the developer hardware test. */
+/** Parameter table of the hardware test example. */
 #define KFSW_HW_TEST_TABLE_ID 67U
 /** Stable logical name paired with KFSW_HW_TEST_TABLE_ID. */
 #define KFSW_HW_TEST_TABLE_NAME "hw_test"
 
 /** @defgroup kfsw_modules_boton_test boton_test Module
  *  @ingroup kfsw_modules
- *  Debounced button ownership, live status, and parameter definitions.
+ *  Debounced button, LEDs, status and parameters.
  *
  *  @{
  */
@@ -45,18 +45,17 @@ struct kfsw_boton_test_status {
 };
 
 /**
- * Initialize the module and its optional physical GPIO composition.
+ * Initialize the module and its GPIO.
  *
- * Runtime state starts at zero on each boot. If the button is already held at
- * initialization, it is treated as held rather than as a new press; a release
- * followed by another press is required before the count changes.
+ * State starts at zero on each boot. A button already held at startup is not
+ * counted until it is released and pressed again.
  *
  * @return 0 on success, or a negative errno value when GPIO setup fails.
  */
 int kfsw_boton_test_init(void);
 
 /**
- * Copy a consistent snapshot of the module-owned runtime state.
+ * Copy a consistent snapshot of the module state.
  *
  * @param status Destination status structure.
  * @return 0 on success, -EINVAL for a NULL destination, or -EACCES before
@@ -65,7 +64,7 @@ int kfsw_boton_test_init(void);
 int kfsw_boton_test_get_status(struct kfsw_boton_test_status *status);
 
 /**
- * Set one developer LED through the module-owned state and GPIO path.
+ * Set one LED.
  *
  * @param led LED colour to control.
  * @param on True to turn the LED on, false to turn it off.
@@ -74,7 +73,7 @@ int kfsw_boton_test_get_status(struct kfsw_boton_test_status *status);
  */
 int kfsw_boton_test_set_led(enum kfsw_boton_test_led led, bool on);
 
-/** Non-persistent live PARAM definitions owned by boton_test. */
+/** Parameter table of boton_test. */
 extern const struct kfsw_param_definition_set kfsw_boton_test_param_definitions;
 
 /** @} */
