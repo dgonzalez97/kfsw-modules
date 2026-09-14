@@ -16,21 +16,14 @@ struct kfsw_param_definition_set;
 #define KFSW_TEMP_EXAMPLE_TABLE_NAME "temp_example"
 
 /**
- * Reading reported when the sensor has not been read successfully.
- *
- * Far outside anything a die can survive, so a consumer that ignores the valid
- * flag still cannot mistake an absent reading for a cold one. Zero would be a
- * plausible temperature, which is exactly what makes it the wrong choice.
+ * Reading reported when the sensor has not been read. It is far outside any
+ * real die temperature, so it can't be mistaken for a reading.
  */
 #define KFSW_TEMP_EXAMPLE_INVALID_MILLI_C INT32_MIN
 
 /** @defgroup kfsw_modules_temp_example Temperature sensor example module
  *  @ingroup kfsw_modules
- *  A worked example of a sensor behind a parameter table, for housekeeping.
- *
- *  The symbols are prefixed `kfsw_temp_example_` rather than with the full
- *  directory name, which would leave little of a 100-column line for the rest
- *  of the declaration.
+ *  A sensor read into a parameter table, for housekeeping.
  *
  *  @{
  */
@@ -62,8 +55,7 @@ int kfsw_temp_example_init(void);
 /**
  * Copy a consistent snapshot of the cached reading.
  *
- * Cheap: this returns what the poller last stored and never touches the ADC,
- * so it is safe from a parameter sample callback.
+ * Doesn't touch the ADC, so it can be called from a parameter sample callback.
  * Readings older than CONFIG_KFSW_TEMP_EXAMPLE_MAX_AGE_MS are returned as invalid.
  *
  * @param reading Destination.
@@ -72,7 +64,7 @@ int kfsw_temp_example_init(void);
  */
 int kfsw_temp_example_get(struct kfsw_temp_example_reading *reading);
 
-/** Read-only live PARAM definitions owned by the temperature example. */
+/** Parameter table of the temperature example. */
 extern const struct kfsw_param_definition_set kfsw_temp_example_param_definitions;
 
 /** @} */

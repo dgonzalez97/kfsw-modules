@@ -10,13 +10,8 @@
 #include <kfsw/services/parameter.h>
 
 /*
- * Everything the module knows, published so an operator can confirm what a node
- * expects of its radio without reading the build.
- *
- * Read-only throughout: the module picks an implementation at build time and
- * neither configures nor interrogates the modem. link_state stays unknown
- * unless it can be read back, because claiming a link is up on no evidence is
- * worse than admitting it is not known.
+ * Radio identity and expected settings. The module doesn't configure or query
+ * the modem, so link_state stays unknown.
  */
 
 #define KFSW_RADIO_UHF_NAME_SIZE 24U
@@ -166,9 +161,7 @@ static const struct kfsw_param_definition radio_uhf_param_definitions[] = {
 		.type = KFSW_PARAM_U8,
 		.flags = KFSW_PARAM_FLAG_READ_ONLY,
 		.name = "uhf_link_state",
-		/* Unknown is a real value, not a placeholder: without a readback
-		 * there is no evidence either way, and reporting a link as up on
-		 * no evidence is the reading that gets acted on wrongly. */
+		/* No readback, so the link state is unknown. */
 		.description = "unknown, down or up; unknown unless the modem is read back",
 		.value = &radio_link_state,
 		.sample = sample_link_state,

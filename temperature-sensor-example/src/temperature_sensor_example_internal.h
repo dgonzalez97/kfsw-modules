@@ -7,8 +7,8 @@
 #include <kfsw/modules/temperature_sensor_example.h>
 
 /*
- * The cache and the sensor are separate files so the cache can be tested on a
- * board that has no die temperature, which is every board Twister runs on.
+ * The cache and the sensor are in separate files so the cache can be tested
+ * without a sensor.
  */
 void kfsw_temp_example_store(int32_t milli_c, uint64_t monotonic_ms);
 void kfsw_temp_example_store_failure(void);

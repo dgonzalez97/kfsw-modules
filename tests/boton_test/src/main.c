@@ -17,9 +17,7 @@
 
 #include "boton_test_internal.h"
 
-/* Offsets within table 67, not identifiers in a flat space. The table is what
- * makes them unique, so the same offsets may appear in any other table.
- */
+/* Offsets within table 67. */
 #define BOTON_TEST_PRESS_COUNT_OFFSET 0x00U
 #define BOTON_TEST_LAST_PRESS_S_OFFSET 0x04U
 #define HW_TEST_LED_GREEN_OFFSET 0x08U
@@ -282,8 +280,7 @@ ZTEST(boton_test, test_parameter_definition_set_has_stable_nonpersistent_ids)
 	zassert_equal(led_blue->offset, HW_TEST_LED_BLUE_OFFSET);
 	zassert_equal(led_red->offset, HW_TEST_LED_RED_OFFSET);
 
-	/* The module band is where a module's table has to sit: a table outside
-	 * it would collide with a core or service table on another node. */
+	/* A module table must be in the module band. */
 	zassert_equal(kfsw_boton_test_param_definitions.table, KFSW_HW_TEST_TABLE_ID);
 	zassert_str_equal(kfsw_boton_test_param_definitions.name, KFSW_HW_TEST_TABLE_NAME);
 	zassert_str_equal(kfsw_param_band_name(KFSW_HW_TEST_TABLE_ID), "module");

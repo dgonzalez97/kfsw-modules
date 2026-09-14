@@ -14,9 +14,9 @@
 #include "temperature_sensor_example_internal.h"
 
 /*
- * A sensor read is an ADC conversion behind a driver mutex, and parameter
- * sample callbacks run under the table lock. So the module polls on its own
- * schedule and the table only ever copies what is already here.
+ * Reading the ADC takes a driver mutex and sample callbacks run under the table
+ * lock, so the module polls on its own work queue and the table copies the
+ * cached value.
  */
 
 static struct kfsw_temp_example_reading cached = {
@@ -42,9 +42,7 @@ void kfsw_temp_example_store(int32_t milli_c, uint64_t monotonic_ms)
 void kfsw_temp_example_store_failure(void)
 {
 	(void)k_mutex_lock(&cache_lock, K_FOREVER);
-	/* The last good reading is dropped rather than left standing: a stale
-	 * number that keeps being served reads as a working sensor.
-	 */
+	/* Drop the last good reading when a read fails. */
 	cached.milli_c = KFSW_TEMP_EXAMPLE_INVALID_MILLI_C;
 	cached.valid = false;
 	if (cached.failures < UINT32_MAX) {
@@ -145,9 +143,8 @@ static int cmd_temp_status(const struct shell *sh, size_t argc, char **argv)
 	}
 
 	if (reading.valid) {
-		/* Degrees and thousandths rather than a float, so a shell command
-		 * does not pull in soft-float printing. The sign is carried
-		 * separately because -0.5 C truncates to a whole part of 0.
+		/* Whole degrees and thousandths, to avoid float printing. The sign is kept
+		 * separately because -0.5 C has a whole part of 0.
 		 */
 		int32_t magnitude = (reading.milli_c < 0) ? -reading.milli_c : reading.milli_c;
 
