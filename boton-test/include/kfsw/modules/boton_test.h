@@ -12,7 +12,7 @@ struct kfsw_param_definition_set;
 
 /** Parameter table of the hardware test example. */
 #define KFSW_HW_TEST_TABLE_ID 67U
-/** Stable logical name paired with KFSW_HW_TEST_TABLE_ID. */
+/** Parameter table name. */
 #define KFSW_HW_TEST_TABLE_NAME "hw_test"
 
 /** @defgroup kfsw_modules_boton_test boton_test Module
