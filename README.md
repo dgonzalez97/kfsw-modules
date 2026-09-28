@@ -46,10 +46,9 @@ A duplicate name or address is rejected at startup.
 
 ## radio-uhf and Holybro SiK
 
-The API reports the selected implementation, the expected hardware and serial
-settings, whether live status can be read, and the RF link state. Most of this
-is fixed at build time: the Holybro has no safe status query while it carries
-traffic, so status is unavailable and the link state is `unknown`.
+The API reports the selected implementation and expected hardware and serial
+settings. The module does not query the Holybro while it carries traffic;
+hardware status is unavailable and the RF link state is `unknown`.
 
 The target devicetree sets the UART and its pins, and `kfsw-comms` handles the
 data. The expected baud rate defaults to 57600.
@@ -104,7 +103,7 @@ states. They start at zero on every boot and are not saved. Nothing is
 allocated, no thread is created, and the counters saturate instead of wrapping.
 
 The status API copies all five values under one lock. The parameters are read
-one at a time, which is fine for watching a single value.
+one at a time, so use the status API for a consistent snapshot.
 
 The first hardware mapping is the NUCLEO USER button and its three LEDs. The
 state, settings, shell and GPIO emulator tests run without the board; the
@@ -112,10 +111,9 @@ hardware test is in `k-fsw/tests/hil/boton-test/`.
 
 ## temperature-sensor-example
 
-An example of a sensor read into a parameter table, and the first use of the
-Zephyr sensor API in the project. On a NUCLEO-L496ZG it reads the
-factory-calibrated die temperature on ADC1 channel 17, so it needs no wiring
-and gives housekeeping a real value to collect.
+Publishes sensor readings in a parameter table using the Zephyr sensor API.
+On the NUCLEO-L496ZG it reads the factory-calibrated die temperature on ADC1
+channel 17; no external wiring is needed.
 
 Reading the ADC takes a driver mutex and sample callbacks run under the table
 lock, so the module polls on its own work queue and the table copies the cached
