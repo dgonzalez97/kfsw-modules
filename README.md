@@ -3,10 +3,8 @@
 Device and subsystem modules: the code for a specific piece of hardware, built
 on the K-FSW services, comms and platform layers.
 
-There are three: **`radio-uhf`**, a UHF radio module with a Holybro SiK
-implementation; **`boton-test`**, a small button and LED example; and
-**`temperature-sensor-example`**, a sensor read into a parameter table. GNSS
-receivers, ADCS or EPS devices and payloads would also go here.
+The examples cover a Holybro SiK UHF radio, board buttons and LEDs, and an
+MCU temperature sensor. Add other device or subsystem modules here.
 
 Full documentation is on the [K-FSW site](https://dgonzalez97.github.io/k-fsw/).
 
@@ -26,8 +24,7 @@ A module handles one device or subsystem and uses the layers below it:
 For example, the Holybro radio sends bytes over a transparent serial link, and
 the UART, KISS and CSP code stays in `kfsw-comms`.
 
-Modules are selected at compile time. A module that is not enabled does
-nothing; there is no plugin manager or registry.
+Select modules at build time with Kconfig and bind their hardware in devicetree.
 
 ## Settings
 
@@ -36,7 +33,8 @@ the module is enabled. The parameter service doesn't depend on any module.
 
 Parameters are addressed by table and offset. Modules use tables 50 to 99;
 1 to 24 are core and 25 to 49 are services. Inside its table a module can use
-any offsets, and only the table number has to be unique.
+non-overlapping offsets. Table numbers and parameter names must be unique on
+the node.
 
 | Table | Module | Values |
 | --- | --- | --- |
@@ -58,13 +56,15 @@ data. The expected baud rate defaults to 57600.
 
 `CONFIG_KFSW_RADIO_UHF_CRYPTO` adds AES-256-GCM on flight and ground. Set
 `uhf_key_hex` locally to a random 64-digit hex key; reading it back returns an
-empty value. `uhf_encrypt_enable`, `uhf_encrypt_tx` and `uhf_encrypt_rx` turn
-protection on, and the radio module saves them. Check `uhf_crypto_error`, then
-use `uhf connect` and `uhf status` to start and inspect the sessions.
+empty value. `uhf_encrypt_enable` is the master switch; `uhf_encrypt_tx` and
+`uhf_encrypt_rx` select each direction. These settings accept local writes
+only, and the radio module saves them outside the FTP directory. Check
+`uhf_crypto_error`, then use `uhf connect` and `uhf status` to inspect sessions.
 
-New authenticated handshakes and packet counters reject replayed packets, also
-after a reset. The UART codec runs outside the interrupt handler and keeps
-libcsp's KISS framing. No modem settings are changed.
+Authenticated handshakes and packet counters reject replayed data, including
+after reset. A replayed handshake can interrupt a session. Receive decoding
+runs outside the interrupt handler; transmit encoding runs in the caller.
+The link keeps libcsp's KISS framing and leaves modem settings unchanged.
 
 TX power, network ID and air rate are not writable because the module can't
 apply them yet.
@@ -75,8 +75,8 @@ or `ATS...` and doesn't change the `MAVLINK=1` setting.
 
 ## boton-test
 
-`boton_test` is a small example of a hardware module with state. Its shell and
-parameter name is `hw_test`.
+`boton_test` is a small example of a hardware module with state. Its parameter
+table is `hw_test`; the shell commands are `boton_test status` and `test led`.
 
 ```text
   button --> edge ISR --> debounce work ----+
@@ -117,6 +117,9 @@ Reading the ADC takes a driver mutex and sample callbacks run under the table
 lock, so the module polls on its own work queue and the table copies the cached
 reading. If a read fails, `temp_mcu_mc` is set to a reserved value far outside
 any real temperature, `temp_valid` goes to 0 and `temp_failures` increases.
+
+A cached sample older than `KFSW_TEMP_EXAMPLE_MAX_AGE_MS` also reads as invalid.
+The failure counter counts failed reads, not age checks.
 
 It measures the die, not the board or the air, and is only accurate to a few
 degrees, so use it as a trend.
