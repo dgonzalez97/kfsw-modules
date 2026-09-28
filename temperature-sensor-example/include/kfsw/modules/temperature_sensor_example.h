@@ -12,12 +12,11 @@ struct kfsw_param_definition_set;
 
 /** Parameter table reserved for the temperature example. */
 #define KFSW_TEMP_EXAMPLE_TABLE_ID 51U
-/** Stable logical name paired with KFSW_TEMP_EXAMPLE_TABLE_ID. */
+/** Parameter table name. */
 #define KFSW_TEMP_EXAMPLE_TABLE_NAME "temp_example"
 
 /**
- * Reading reported when the sensor has not been read. It is far outside any
- * real die temperature, so it can't be mistaken for a reading.
+ * Sentinel for an invalid or unavailable temperature.
  */
 #define KFSW_TEMP_EXAMPLE_INVALID_MILLI_C INT32_MIN
 
@@ -28,7 +27,7 @@ struct kfsw_param_definition_set;
  *  @{
  */
 
-/** What the module knows about the sensor since boot. */
+/** Cached temperature and read counters. */
 struct kfsw_temp_example_reading {
 	/** Latest temperature in thousandths of a degree Celsius. */
 	int32_t milli_c;
@@ -43,7 +42,7 @@ struct kfsw_temp_example_reading {
 };
 
 /**
- * Initialize the module and, when one is composed, bind and start the sensor.
+ * Initialize the cache and start the configured sensor.
  *
  * Queues the first reading on the module's workqueue. The cache stays invalid
  * until that read completes; initialization does not wait for a conversion.

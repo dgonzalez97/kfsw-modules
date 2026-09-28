@@ -18,7 +18,7 @@ enum kfsw_radio_uhf_link_state {
 	KFSW_RADIO_UHF_LINK_UNKNOWN,
 };
 
-/** Compile-time UHF-radio identity and bounded status snapshot. */
+/** UHF radio identity and status. */
 struct kfsw_radio_uhf_info {
 	/** Selected implementation identifier. */
 	const char *implementation;
@@ -74,10 +74,10 @@ int kfsw_radio_uhf_crypto_connect(void);
 #if CONFIG_KFSW_PARAM
 /** Parameter table of this module, in the module band. */
 #define KFSW_RADIO_UHF_PARAM_TABLE_ID 50U
-/** Stable logical name paired with KFSW_RADIO_UHF_PARAM_TABLE_ID. */
+/** Parameter table name. */
 #define KFSW_RADIO_UHF_PARAM_TABLE_NAME "radio_uhf"
 
-/** What this composition expects of its radio, and what it can see of it. */
+/** Radio identity, status and configuration parameters. */
 extern const struct kfsw_param_definition_set kfsw_radio_uhf_param_definitions;
 #endif
 
