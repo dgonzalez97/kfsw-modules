@@ -39,6 +39,8 @@ static int radio_random(uint8_t *data, size_t size)
 #endif
 
 static K_MUTEX_DEFINE(crypto_lock);
+/* Serialize settings writers without making packets wait for flash I/O. */
+static K_MUTEX_DEFINE(settings_lock);
 static struct radio_crypto_settings settings = {.enabled = true, .tx = true, .rx = true};
 static struct kfsw_radio_crypto_info status;
 static psa_key_id_t master, tx_key, rx_key;
@@ -453,6 +455,7 @@ static void save_settings(struct radio_crypto_settings *next, bool changed_key)
 	if (result == 0) {
 		result = radio_crypto_store_save(next);
 	}
+	k_mutex_lock(&crypto_lock, K_FOREVER);
 	if (result == 0) {
 		settings = *next;
 		/* The peer must refresh its outbound session after our RX state resets. */
@@ -463,6 +466,7 @@ static void save_settings(struct radio_crypto_settings *next, bool changed_key)
 		}
 	}
 	status.last_error = result;
+	k_mutex_unlock(&crypto_lock);
 }
 
 void radio_crypto_set_key(const char *text)
@@ -470,15 +474,17 @@ void radio_crypto_set_key(const char *text)
 	if (!initialized || strlen(text) != 64) {
 		return;
 	}
+	k_mutex_lock(&settings_lock, K_FOREVER);
 	k_mutex_lock(&crypto_lock, K_FOREVER);
 	struct radio_crypto_settings next = settings;
+	k_mutex_unlock(&crypto_lock);
 	for (size_t i = 0; i < sizeof(next.key); i++) {
 		next.key[i] = (uint8_t)((nibble(text[2 * i]) << 4) | nibble(text[2 * i + 1]));
 	}
 	next.key_set = true;
 	save_settings(&next, true);
 	radio_crypto_clear(&next, sizeof(next));
-	k_mutex_unlock(&crypto_lock);
+	k_mutex_unlock(&settings_lock);
 }
 
 static void set_switch(uint8_t which, bool value)
@@ -486,8 +492,10 @@ static void set_switch(uint8_t which, bool value)
 	if (!initialized) {
 		return;
 	}
+	k_mutex_lock(&settings_lock, K_FOREVER);
 	k_mutex_lock(&crypto_lock, K_FOREVER);
 	struct radio_crypto_settings next = settings;
+	k_mutex_unlock(&crypto_lock);
 	if (which == 0) {
 		next.enabled = value;
 	}
@@ -499,7 +507,7 @@ static void set_switch(uint8_t which, bool value)
 	}
 	save_settings(&next, false);
 	radio_crypto_clear(&next, sizeof(next));
-	k_mutex_unlock(&crypto_lock);
+	k_mutex_unlock(&settings_lock);
 }
 
 void radio_crypto_set_enable(const union kfsw_param_scalar *value)

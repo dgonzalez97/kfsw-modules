@@ -61,6 +61,10 @@ empty value. `uhf_encrypt_enable` is the master switch; `uhf_encrypt_tx` and
 only, and the radio module saves them outside the FTP directory. Check
 `uhf_crypto_error`, then use `uhf connect` and `uhf status` to inspect sessions.
 
+Packets keep using the current settings while a change is saved. A successful
+save applies the change and clears the sessions; a failed save keeps the old
+settings. Storage writes do not hold the packet-processing lock.
+
 Authenticated handshakes and packet counters reject replayed data, including
 after reset. A replayed handshake can interrupt a session. Receive decoding
 runs outside the interrupt handler; transmit encoding runs in the caller.
