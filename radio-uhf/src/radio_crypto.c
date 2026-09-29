@@ -22,7 +22,7 @@
 #define RETRY_MS 1000
 #define HMAC_ALG PSA_ALG_HMAC(PSA_ALG_SHA_256)
 
-/* What services are told to fit in, so the two cannot drift apart. */
+/* The budget services size against; this keeps the two equal. */
 BUILD_ASSERT(DATA_HEADER + TAG_BYTES + sizeof(uint32_t) == KFSW_CSP_SECURE_OVERHEAD,
 	     "the framing here is what KFSW_CSP_PAYLOAD_MAX subtracts");
 
