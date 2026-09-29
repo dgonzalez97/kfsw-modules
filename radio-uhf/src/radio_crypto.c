@@ -4,6 +4,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/byteorder.h>
 #include <psa/crypto.h>
+#include <kfsw/comms/csp.h>
 #include <kfsw/comms/uart_codec.h>
 #include <kfsw/modules/radio_uhf.h>
 
@@ -20,6 +21,10 @@
 #define AAD_BYTES 8U
 #define RETRY_MS 1000
 #define HMAC_ALG PSA_ALG_HMAC(PSA_ALG_SHA_256)
+
+/* What services are told to fit in, so the two cannot drift apart. */
+BUILD_ASSERT(DATA_HEADER + TAG_BYTES + sizeof(uint32_t) == KFSW_CSP_SECURE_OVERHEAD,
+	     "the framing here is what KFSW_CSP_PAYLOAD_MAX subtracts");
 
 enum frame_type { DATA, HELLO, REPLY };
 
@@ -285,7 +290,7 @@ static int encode(csp_packet_t *packet)
 		result = -EAGAIN;
 		goto done;
 	}
-	if (packet->length > CSP_BUFFER_SIZE - DATA_HEADER - TAG_BYTES - sizeof(uint32_t)) {
+	if (packet->length > KFSW_CSP_PAYLOAD_MAX) {
 		result = -EMSGSIZE;
 		goto done;
 	}
