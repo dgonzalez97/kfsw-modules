@@ -15,7 +15,7 @@ struct kfsw_param_definition_set;
 /** Parameter table name. */
 #define KFSW_HW_TEST_TABLE_NAME "hw_test"
 
-/** @defgroup kfsw_modules_boton_test boton_test Module
+/** @defgroup kfsw_modules_boton_test Button test
  *  @ingroup kfsw_modules
  *  Debounced button, LEDs, status and parameters.
  *
