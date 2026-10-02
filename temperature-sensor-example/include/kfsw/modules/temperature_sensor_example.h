@@ -20,7 +20,7 @@ struct kfsw_param_definition_set;
  */
 #define KFSW_TEMP_EXAMPLE_INVALID_MILLI_C INT32_MIN
 
-/** @defgroup kfsw_modules_temp_example Temperature sensor example module
+/** @defgroup kfsw_modules_temp_example Temperature sensor example
  *  @ingroup kfsw_modules
  *  A sensor read into a parameter table, for housekeeping.
  *
