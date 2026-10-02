@@ -10,6 +10,7 @@
 #endif
 
 #include <kfsw/platform/time.h>
+#include <kfsw/services/log.h>
 
 #include "temperature_sensor_example_internal.h"
 
@@ -59,14 +60,24 @@ static K_WORK_DELAYABLE_DEFINE(poll_work, poll_work_handler);
 
 static int sample_once(void)
 {
+	static bool failing;
 	int32_t milli_c;
 	int result;
 
 	result = kfsw_temp_example_sensor_read(&milli_c);
 	if (result != 0) {
 		kfsw_temp_example_store_failure();
+		/* Once per outage, not once per period. */
+		if (!failing) {
+			kfsw_log_warning("Temperature read failed: %d", result);
+		}
+		failing = true;
 		return result;
 	}
+	if (failing) {
+		kfsw_log_info("Temperature readings are back");
+	}
+	failing = false;
 	kfsw_temp_example_store(milli_c, kfsw_time_monotonic_ms());
 	return 0;
 }
@@ -93,12 +104,14 @@ int kfsw_temp_example_init(void)
 	int result = kfsw_temp_example_sensor_prepare();
 	if (result != 0) {
 		k_mutex_unlock(&cache_lock);
+		kfsw_log_error("Temperature sensor not ready: %d", result);
 		return result;
 	}
 	k_work_queue_start(&sensor_queue, sensor_stack, K_THREAD_STACK_SIZEOF(sensor_stack),
 			   CONFIG_KFSW_TEMP_EXAMPLE_PRIORITY, NULL);
 	(void)k_thread_name_set(&sensor_queue.thread, "kfsw_temp");
 	(void)k_work_reschedule_for_queue(&sensor_queue, &poll_work, K_NO_WAIT);
+	kfsw_log_info("Temperature sampled every %d ms", CONFIG_KFSW_TEMP_EXAMPLE_PERIOD_MS);
 #endif
 	initialized = true;
 	k_mutex_unlock(&cache_lock);
