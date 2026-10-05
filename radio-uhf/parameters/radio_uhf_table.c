@@ -277,6 +277,7 @@ static const struct kfsw_param_definition radio_uhf_param_definitions[] = {
 const struct kfsw_param_definition_set kfsw_radio_uhf_param_definitions = {
 	.table = KFSW_RADIO_UHF_PARAM_TABLE_ID,
 	.name = KFSW_RADIO_UHF_PARAM_TABLE_NAME,
+	.description = "UHF radio identity, link and encryption",
 	.definitions = radio_uhf_param_definitions,
 	.count = ARRAY_SIZE(radio_uhf_param_definitions),
 };

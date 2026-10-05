@@ -303,6 +303,7 @@ static const struct kfsw_param_definition boton_test_param_definitions[] = {
 const struct kfsw_param_definition_set kfsw_boton_test_param_definitions = {
 	.table = KFSW_HW_TEST_TABLE_ID,
 	.name = KFSW_HW_TEST_TABLE_NAME,
+	.description = "Button presses and LED controls",
 	.definitions = boton_test_param_definitions,
 	.count = ARRAY_SIZE(boton_test_param_definitions),
 };
