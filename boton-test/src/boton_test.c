@@ -338,7 +338,7 @@ SHELL_STATIC_SUBCMD_SET_CREATE(boton_test_commands,
 	SHELL_CMD_ARG(status, NULL, "Show debounced button status.", cmd_boton_test_status, 1, 0),
 	SHELL_SUBCMD_SET_END);
 
-SHELL_CMD_REGISTER(boton_test, &boton_test_commands, "K-FSW button example diagnostics.", NULL);
+SHELL_CMD_REGISTER(boton_test, &boton_test_commands, "Button example diagnostics.", NULL);
 
 static int cmd_hw_test_led(const struct shell *sh, size_t argc, char **argv)
 {
@@ -383,5 +383,5 @@ SHELL_STATIC_SUBCMD_SET_CREATE(hw_test_commands,
 		      cmd_hw_test_led, 3, 0),
 	SHELL_SUBCMD_SET_END);
 
-SHELL_CMD_REGISTER(test, &hw_test_commands, "K-FSW developer hardware-test commands.", NULL);
+SHELL_CMD_REGISTER(test, &hw_test_commands, "Developer hardware-test commands.", NULL);
 #endif
