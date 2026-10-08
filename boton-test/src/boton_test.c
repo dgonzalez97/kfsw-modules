@@ -10,6 +10,7 @@
 #include <zephyr/sys/util.h>
 
 #include <kfsw/modules/boton_test.h>
+#include <kfsw/services/log.h>
 #include <kfsw/services/parameter.h>
 
 #include "boton_test_internal.h"
@@ -92,6 +93,10 @@ int kfsw_boton_test_set_led(enum kfsw_boton_test_led led, bool on)
 		result = set_led_locked(led, on);
 	}
 	k_mutex_unlock(&kfsw_boton_test_lock);
+
+	if (result != 0) {
+		kfsw_log_warning("Button test LED %d not switched: %d", (int)led, result);
+	}
 	return result;
 }
 
@@ -144,7 +149,12 @@ void kfsw_boton_test_process_level(bool pressed, uint64_t monotonic_ms)
 		}
 		boton_test_status.last_press_s = monotonic_seconds(monotonic_ms);
 	}
+	uint32_t press_count = boton_test_status.press_count;
 	k_mutex_unlock(&kfsw_boton_test_lock);
+
+	if (pressed) {
+		kfsw_log_info("Button pressed, %u presses since boot", press_count);
+	}
 }
 
 #if CONFIG_ZTEST
@@ -178,6 +188,7 @@ int kfsw_boton_test_init(void)
 	result = kfsw_boton_test_gpio_prepare(&initially_pressed);
 	if (result != 0) {
 		k_mutex_unlock(&kfsw_boton_test_lock);
+		kfsw_log_error("Button GPIO not ready: %d", result);
 		return result;
 	}
 #endif
@@ -186,6 +197,7 @@ int kfsw_boton_test_init(void)
 	result = kfsw_boton_test_led_gpio_prepare();
 	if (result != 0) {
 		k_mutex_unlock(&kfsw_boton_test_lock);
+		kfsw_log_error("LED GPIO not ready: %d", result);
 		return result;
 	}
 #endif
@@ -202,6 +214,11 @@ int kfsw_boton_test_init(void)
 #endif
 
 	k_mutex_unlock(&kfsw_boton_test_lock);
+	if (result != 0) {
+		kfsw_log_error("Button test did not start: %d", result);
+	} else {
+		kfsw_log_info("Button test started");
+	}
 	return result;
 }
 
@@ -286,6 +303,7 @@ static const struct kfsw_param_definition boton_test_param_definitions[] = {
 const struct kfsw_param_definition_set kfsw_boton_test_param_definitions = {
 	.table = KFSW_HW_TEST_TABLE_ID,
 	.name = KFSW_HW_TEST_TABLE_NAME,
+	.description = "Button presses and LED controls",
 	.definitions = boton_test_param_definitions,
 	.count = ARRAY_SIZE(boton_test_param_definitions),
 };
@@ -320,7 +338,7 @@ SHELL_STATIC_SUBCMD_SET_CREATE(boton_test_commands,
 	SHELL_CMD_ARG(status, NULL, "Show debounced button status.", cmd_boton_test_status, 1, 0),
 	SHELL_SUBCMD_SET_END);
 
-SHELL_CMD_REGISTER(boton_test, &boton_test_commands, "K-FSW button example diagnostics.", NULL);
+SHELL_CMD_REGISTER(boton_test, &boton_test_commands, "Button example diagnostics.", NULL);
 
 static int cmd_hw_test_led(const struct shell *sh, size_t argc, char **argv)
 {
@@ -365,5 +383,5 @@ SHELL_STATIC_SUBCMD_SET_CREATE(hw_test_commands,
 		      cmd_hw_test_led, 3, 0),
 	SHELL_SUBCMD_SET_END);
 
-SHELL_CMD_REGISTER(test, &hw_test_commands, "K-FSW developer hardware-test commands.", NULL);
+SHELL_CMD_REGISTER(test, &hw_test_commands, "Developer hardware-test commands.", NULL);
 #endif

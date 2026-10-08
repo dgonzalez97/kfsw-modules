@@ -34,7 +34,7 @@ config KFSW_RADIO_UHF_SHELL
 	depends on SHELL
 	default y
 	help
-	  Add the small `uhf status` diagnostic command. It reports only selected
+	  Add the small `comms uhf status` diagnostic command. It reports only selected
 	  implementation and configured expectations; it does not probe RF state.
 
 config KFSW_RADIO_UHF_CRYPTO

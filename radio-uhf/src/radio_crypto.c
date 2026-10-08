@@ -4,8 +4,11 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/byteorder.h>
 #include <psa/crypto.h>
+#include <kfsw/comms/csp.h>
 #include <kfsw/comms/uart_codec.h>
 #include <kfsw/modules/radio_uhf.h>
+#define KFSW_LOG_MODULE KFSW_LOG_MODULE_RADIO
+#include <kfsw/services/log.h>
 
 #include "radio_crypto_internal.h"
 
@@ -20,6 +23,10 @@
 #define AAD_BYTES 8U
 #define RETRY_MS 1000
 #define HMAC_ALG PSA_ALG_HMAC(PSA_ALG_SHA_256)
+
+/* The budget services size against; this keeps the two equal. */
+BUILD_ASSERT(DATA_HEADER + TAG_BYTES + sizeof(uint32_t) == KFSW_CSP_SECURE_OVERHEAD,
+	     "the framing here is what KFSW_CSP_PAYLOAD_MAX subtracts");
 
 enum frame_type { DATA, HELLO, REPLY };
 
@@ -228,6 +235,7 @@ static int hello_received(csp_packet_t *packet)
 		memcpy(peer_boot, client, NONCE_BYTES);
 		memcpy(peer_request, request, NONCE_BYTES);
 		memcpy(server_nonce, fresh, NONCE_BYTES);
+		kfsw_log_info("Radio session from node %u accepted", PEER);
 	}
 	frame_header(reply, REPLY);
 	memcpy(reply + 4, client, NONCE_BYTES);
@@ -266,6 +274,9 @@ static int control_received(csp_packet_t *packet)
 		derive_key(boot_nonce, request_nonce, packet->data + 4 + 2U * NONCE_BYTES, true);
 	if (result == 0) {
 		pending = false;
+		kfsw_log_info("Radio session to node %u established", PEER);
+	} else {
+		kfsw_log_error("Radio session key not derived: %d", result);
 	}
 	return result;
 }
@@ -285,7 +296,7 @@ static int encode(csp_packet_t *packet)
 		result = -EAGAIN;
 		goto done;
 	}
-	if (packet->length > CSP_BUFFER_SIZE - DATA_HEADER - TAG_BYTES - sizeof(uint32_t)) {
+	if (packet->length > KFSW_CSP_PAYLOAD_MAX) {
 		result = -EMSGSIZE;
 		goto done;
 	}
@@ -393,6 +404,12 @@ int kfsw_radio_uhf_crypto_init(void)
 	initialized = true;
 	status.last_error = result;
 	k_mutex_unlock(&crypto_lock);
+	if (result != 0) {
+		kfsw_log_error("Radio protection not started: %d", result);
+	} else {
+		kfsw_log_info("Radio protection %s, key %s", settings.enabled ? "on" : "off",
+			      settings.key_set ? "loaded" : "not set");
+	}
 	return result;
 }
 

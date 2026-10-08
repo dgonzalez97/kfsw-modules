@@ -95,6 +95,7 @@ static const struct kfsw_param_definition temp_example_param_definitions[] = {
 const struct kfsw_param_definition_set kfsw_temp_example_param_definitions = {
 	.table = KFSW_TEMP_EXAMPLE_TABLE_ID,
 	.name = KFSW_TEMP_EXAMPLE_TABLE_NAME,
+	.description = "Die temperature readings",
 	.definitions = temp_example_param_definitions,
 	.count = ARRAY_SIZE(temp_example_param_definitions),
 };
