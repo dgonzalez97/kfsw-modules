@@ -1,0 +1,77 @@
+menuconfig KFSW_GPREDICT
+	bool "K-FSW pass tracking module"
+	help
+	  Enable pass tracking: the state machine that decides whether a gap in
+	  the bearings is a predictor that stalled or a pass that ended. The
+	  hamlib conversations with gpredict itself are not part of this module.
+
+if KFSW_GPREDICT
+
+config KFSW_GPREDICT_GRACE_MS
+	int "Grace period before silence ends the pass, in milliseconds"
+	range 250 600000
+	default 5000
+	help
+	  How long the antenna holds its last bearing before parking. Too short
+	  parks in the middle of a pass every time the predictor or the link to
+	  it hesitates, and the rest of the pass is lost. Too long leaves the
+	  antenna pointing at empty sky after the pass, and the next pass starts
+	  with a full slew instead of a short one. Half the shortest useful pass
+	  is a safe ceiling.
+
+config KFSW_GPREDICT_PARK_AZIMUTH_DEG
+	int "Park azimuth in degrees"
+	range 0 360
+	default 0
+	help
+	  Where the antenna waits between passes. A park bearing on the far side
+	  of the travel from the usual rise azimuth spends the start of every
+	  pass slewing.
+
+config KFSW_GPREDICT_PARK_ELEVATION_DEG
+	int "Park elevation in degrees"
+	range 0 90
+	default 0
+	help
+	  Low sheds wind, water and ice onto the mast instead of into the dish,
+	  and keeps the sun out of the feed. High shortens the slew into the
+	  next pass. Nothing between the two is free.
+
+config KFSW_GPREDICT_AZIMUTH_MIN_DEG
+	int "Lowest azimuth the rotator may be sent, in degrees"
+	range 0 360
+	default 0
+	help
+	  Narrower than the rotator can reach refuses bearings it would have
+	  followed, and the refused ones are at the start and end of a pass where
+	  the link is already worst. Wider than it can reach drives it into its
+	  stops.
+
+config KFSW_GPREDICT_AZIMUTH_MAX_DEG
+	int "Highest azimuth the rotator may be sent, in degrees"
+	range 0 360
+	default 360
+	help
+	  See the minimum. The two together are the travel this module will
+	  command, and a bearing outside them is refused rather than clamped: a
+	  clamped bearing points at the wrong sky and says nothing about it.
+
+config KFSW_GPREDICT_ELEVATION_MIN_DEG
+	int "Lowest elevation the rotator may be sent, in degrees"
+	range 0 90
+	default 0
+	help
+	  Zero is the horizon, which is the floor whatever else is configured.
+	  Raising it refuses the first and last minutes of every pass, which is
+	  where a low-elevation link is acquired.
+
+config KFSW_GPREDICT_ELEVATION_MAX_DEG
+	int "Highest elevation the rotator may be sent, in degrees"
+	range 0 90
+	default 90
+	help
+	  Below the rotator's real limit refuses the middle of a high pass, which
+	  is the strongest part of it. At or above the limit drives the mast into
+	  its stop at the top of the pass.
+
+endif # KFSW_GPREDICT

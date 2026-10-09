@@ -8,6 +8,13 @@
 extern "C" {
 #endif
 
+struct kfsw_param_definition_set;
+
+/** Parameter table reserved for pass tracking. */
+#define KFSW_GPREDICT_TABLE_ID 52U
+/** Parameter table name. */
+#define KFSW_GPREDICT_TABLE_NAME "gpredict"
+
 /**
  * @defgroup kfsw_modules_gpredict Pass tracking
  * @ingroup kfsw_modules
@@ -135,14 +142,23 @@ int kfsw_gpredict_bearing(const struct kfsw_gpredict_bearing *bearing);
 /** Offer a Doppler-corrected frequency. Zero is refused with -EINVAL. */
 int kfsw_gpredict_frequency(uint64_t frequency_hz);
 
-/** Ask for the park position now, whatever the pass is doing. */
+/**
+ * @brief Ask for the park position now, whatever the pass is doing.
+ *
+ * @retval 0 On the way to the park position.
+ * @retval -EPERM The tracker is in fault. The rotator cannot be trusted to
+ *         move, so an operator clears the fault first.
+ */
 int kfsw_gpredict_park(void);
 
-/** Clear a fault. Returns -EALREADY when there is nothing to clear. */
+/** Clear a fault and park. Returns -EALREADY when there is nothing to clear. */
 int kfsw_gpredict_clear(void);
 
 /** Read the tracker. Returns -EINVAL for a NULL destination. */
 int kfsw_gpredict_get_status(struct kfsw_gpredict_status *status);
+
+/** Parameter table of the pass tracker. */
+extern const struct kfsw_param_definition_set kfsw_gpredict_param_definitions;
 
 /** @} */
 
