@@ -10,15 +10,6 @@
 
 #include "gpredict_internal.h"
 
-/*
- * The travel the rotator is allowed, in millidegrees. Bearings outside it are
- * refused rather than clamped: a clamped bearing points at the wrong sky and
- * reports success while doing it.
- */
-#define GPREDICT_AZIMUTH_MIN_MDEG (CONFIG_KFSW_GPREDICT_AZIMUTH_MIN_DEG * 1000)
-#define GPREDICT_AZIMUTH_MAX_MDEG (CONFIG_KFSW_GPREDICT_AZIMUTH_MAX_DEG * 1000)
-#define GPREDICT_ELEVATION_MIN_MDEG (CONFIG_KFSW_GPREDICT_ELEVATION_MIN_DEG * 1000)
-#define GPREDICT_ELEVATION_MAX_MDEG (CONFIG_KFSW_GPREDICT_ELEVATION_MAX_DEG * 1000)
 #define GPREDICT_PARK_AZIMUTH_MDEG (CONFIG_KFSW_GPREDICT_PARK_AZIMUTH_DEG * 1000)
 #define GPREDICT_PARK_ELEVATION_MDEG (CONFIG_KFSW_GPREDICT_PARK_ELEVATION_DEG * 1000)
 
@@ -270,6 +261,25 @@ static bool within_travel(const struct kfsw_gpredict_bearing *bearing)
 	       (bearing->elevation_mdeg <= GPREDICT_ELEVATION_MAX_MDEG);
 }
 
+static void refuse(const struct kfsw_gpredict_bearing *bearing, int error)
+{
+	count_up(&tracker.refusals);
+	tracker.last_error = error;
+	if (!refusing) {
+		/* Once per run of refusals: a stuck predictor sends many. */
+		kfsw_log_warning("Pass tracking refused az %d el %d mdeg: %d",
+				 bearing->azimuth_mdeg, bearing->elevation_mdeg, error);
+	}
+	refusing = true;
+}
+
+void gpredict_refuse_bearing(const struct kfsw_gpredict_bearing *bearing, int error)
+{
+	(void)k_mutex_lock(&tracker_lock, K_FOREVER);
+	refuse(bearing, error);
+	k_mutex_unlock(&tracker_lock);
+}
+
 int kfsw_gpredict_bearing(const struct kfsw_gpredict_bearing *bearing)
 {
 	int result = 0;
@@ -289,14 +299,7 @@ int kfsw_gpredict_bearing(const struct kfsw_gpredict_bearing *bearing)
 	}
 
 	if (result != 0) {
-		count_up(&tracker.refusals);
-		tracker.last_error = result;
-		if (!refusing) {
-			/* Once per run of refusals: a stuck predictor sends many. */
-			kfsw_log_warning("Pass tracking refused az %d el %d mdeg: %d",
-					 bearing->azimuth_mdeg, bearing->elevation_mdeg, result);
-		}
-		refusing = true;
+		refuse(bearing, result);
 		k_mutex_unlock(&tracker_lock);
 		return result;
 	}
