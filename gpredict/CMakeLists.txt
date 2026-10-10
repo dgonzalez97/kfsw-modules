@@ -1,9 +1,14 @@
 set(kfsw_gpredict_sources
     src/gpredict.c
+    src/gpredict_profiles.c
 )
 
 if(CONFIG_KFSW_PARAM)
     list(APPEND kfsw_gpredict_sources parameters/gpredict_table.c)
+endif()
+
+if(CONFIG_KFSW_COMMAND)
+    list(APPEND kfsw_gpredict_sources src/gpredict_commands.c)
 endif()
 
 add_library(kfsw_gpredict STATIC ${kfsw_gpredict_sources})

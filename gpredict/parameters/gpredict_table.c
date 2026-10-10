@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 
 #include <zephyr/sys/util.h>
 
@@ -27,6 +28,16 @@ static uint32_t gp_refusals;
 static uint32_t gp_passes_ended;
 static uint32_t gp_faults;
 static int32_t gp_last_error;
+
+/* Reserved for no selection: 0 is a real slot and a real policy. */
+#define GP_NONE UINT8_MAX
+
+static uint8_t gp_profile = GP_NONE;
+static uint8_t gp_policy = GP_NONE;
+static uint8_t gp_profiles;
+static uint8_t gp_profiles_on;
+static uint32_t gp_catalogue;
+static char gp_profile_name[KFSW_GPREDICT_PROFILE_NAME_MAX];
 
 static void sample_tracker(void)
 {
@@ -70,6 +81,55 @@ GPREDICT_SAMPLE(refusals, uint32_t)
 GPREDICT_SAMPLE(passes_ended, uint32_t)
 GPREDICT_SAMPLE(faults, uint32_t)
 GPREDICT_SAMPLE(last_error, int32_t)
+
+static void sample_slots(void)
+{
+	const int selected = kfsw_gpredict_profile_selected();
+	struct kfsw_gpredict_profile profile;
+
+	gp_profile = GP_NONE;
+	gp_policy = GP_NONE;
+	gp_profiles = 0U;
+	gp_profiles_on = 0U;
+	gp_catalogue = 0U;
+	gp_profile_name[0] = '\0';
+
+	for (uint8_t index = 0U; index < CONFIG_KFSW_GPREDICT_PROFILES; index++) {
+		if (kfsw_gpredict_profile_get(index, &profile) != 0) {
+			continue;
+		}
+		gp_profiles++;
+		if (profile.enabled) {
+			gp_profiles_on++;
+		}
+		if ((int)index == selected) {
+			gp_profile = index;
+			gp_policy = profile.policy;
+			gp_catalogue = profile.catalogue;
+			(void)memcpy(gp_profile_name, profile.name, sizeof(gp_profile_name));
+		}
+	}
+}
+
+#define PROFILE_SAMPLE(field, type)                                                                \
+	static void sample_##field(void *value)                                                    \
+	{                                                                                          \
+		sample_slots();                                                                    \
+		*(type *)value = gp_##field;                                                       \
+	}
+
+PROFILE_SAMPLE(profile, uint8_t)
+PROFILE_SAMPLE(policy, uint8_t)
+PROFILE_SAMPLE(profiles, uint8_t)
+PROFILE_SAMPLE(profiles_on, uint8_t)
+PROFILE_SAMPLE(catalogue, uint32_t)
+
+static void sample_profile_name(void *value)
+{
+	/* value is gp_profile_name, which sample_slots() has just filled. */
+	ARG_UNUSED(value);
+	sample_slots();
+}
 
 static int validate_grace(const union kfsw_param_scalar *value)
 {
@@ -208,6 +268,61 @@ static const struct kfsw_param_definition gpredict_param_definitions[] = {
 		.description = "Why the last refusal or fault happened, or 0",
 		.value = &gp_last_error,
 		.sample = sample_last_error,
+	},
+	{
+		.offset = 0x3cU,
+		.type = KFSW_PARAM_U8,
+		.flags = KFSW_PARAM_FLAG_READ_ONLY | KFSW_PARAM_FLAG_LIVE,
+		.name = "gp_profile",
+		.description = "Selected profile slot; 255 when none is selected",
+		.value = &gp_profile,
+		.sample = sample_profile,
+	},
+	{
+		.offset = 0x3dU,
+		.type = KFSW_PARAM_U8,
+		.flags = KFSW_PARAM_FLAG_READ_ONLY | KFSW_PARAM_FLAG_LIVE,
+		.name = "gp_policy",
+		.description = "Frequency policy: 0 follow, 1 hold, 2 ignore; 255 when none",
+		.value = &gp_policy,
+		.sample = sample_policy,
+	},
+	{
+		.offset = 0x3eU,
+		.type = KFSW_PARAM_U8,
+		.flags = KFSW_PARAM_FLAG_READ_ONLY,
+		.name = "gp_profiles",
+		.description = "Profile slots holding a profile",
+		.value = &gp_profiles,
+		.sample = sample_profiles,
+	},
+	{
+		.offset = 0x3fU,
+		.type = KFSW_PARAM_U8,
+		.flags = KFSW_PARAM_FLAG_READ_ONLY,
+		.name = "gp_profiles_on",
+		.description = "Defined profiles that may be selected",
+		.value = &gp_profiles_on,
+		.sample = sample_profiles_on,
+	},
+	{
+		.offset = 0x40U,
+		.type = KFSW_PARAM_U32,
+		.flags = KFSW_PARAM_FLAG_READ_ONLY | KFSW_PARAM_FLAG_LIVE,
+		.name = "gp_catalogue",
+		.description = "Catalogue number of the selected profile; 0 when none",
+		.value = &gp_catalogue,
+		.sample = sample_catalogue,
+	},
+	{
+		.offset = 0x44U,
+		.type = KFSW_PARAM_STRING,
+		.capacity = KFSW_GPREDICT_PROFILE_NAME_MAX,
+		.flags = KFSW_PARAM_FLAG_READ_ONLY | KFSW_PARAM_FLAG_LIVE,
+		.name = "gp_profile_name",
+		.description = "Name of the selected profile; empty when none",
+		.value = gp_profile_name,
+		.sample = sample_profile_name,
 	},
 };
 

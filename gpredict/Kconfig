@@ -74,4 +74,14 @@ config KFSW_GPREDICT_ELEVATION_MAX_DEG
 	  is the strongest part of it. At or above the limit drives the mast into
 	  its stop at the top of the pass.
 
+config KFSW_GPREDICT_PROFILES
+	int "Spacecraft profile slots"
+	range 1 8
+	default 3
+	help
+	  Every slot is 56 bytes of RAM on the reference targets, reserved at
+	  build time whether or not a profile is ever defined in it. Eight slots
+	  cost 448 bytes; one slot leaves the node able to follow a single
+	  spacecraft and nothing else.
+
 endif # KFSW_GPREDICT
