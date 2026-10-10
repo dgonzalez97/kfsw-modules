@@ -9,6 +9,7 @@ extern "C" {
 #endif
 
 struct kfsw_param_definition_set;
+struct kfsw_command_definition_set;
 
 /** Parameter table reserved for pass tracking. */
 #define KFSW_GPREDICT_TABLE_ID 52U
@@ -163,6 +164,125 @@ int kfsw_gpredict_get_status(struct kfsw_gpredict_status *status);
 
 /** Parameter table of the pass tracker. */
 extern const struct kfsw_param_definition_set kfsw_gpredict_param_definitions;
+
+/**
+ * @defgroup kfsw_modules_gpredict_profiles Which spacecraft the rules are for
+ * @ingroup kfsw_modules_gpredict
+ *
+ * The ground proxy stands where the rotator and radio daemons stand and sees
+ * every bearing and frequency Gpredict sends. What it cannot know is which
+ * spacecraft they are for: the hamlib protocols carry angles and a frequency
+ * and nothing else. So the spacecraft is chosen here, by hand, and its profile
+ * decides what the proxy is allowed to forward.
+ *
+ * The profiles live in the node rather than in the proxy because this is where
+ * the commands, the parameters and the operator already are. A ground tool that
+ * kept its own copy would be a second place to change them, and the two would
+ * disagree the first time somebody edited one.
+ *
+ * @{
+ */
+
+/** Longest profile name, including the terminator. */
+#define KFSW_GPREDICT_PROFILE_NAME_MAX 16U
+
+/** Wire identifiers of this module's commands. Never reused. */
+#define KFSW_COMMAND_ID_GPREDICT_SELECT 40U
+#define KFSW_COMMAND_ID_GPREDICT_ENABLE 41U
+#define KFSW_COMMAND_ID_GPREDICT_PARK 42U
+#define KFSW_COMMAND_ID_GPREDICT_CLEAR 43U
+
+/** What the node does with the frequency Gpredict sends. */
+enum kfsw_gpredict_frequency_policy {
+	/** Pass it through. Gpredict owns the Doppler. */
+	KFSW_GPREDICT_FREQUENCY_FOLLOW = 0,
+	/**
+	 * Use the profile's own frequency instead. Gpredict keeps correcting
+	 * every cycle, so this is a standing override, not a value set once.
+	 */
+	KFSW_GPREDICT_FREQUENCY_HOLD = 1,
+	/** Send nothing to the radio. The rotator is unaffected. */
+	KFSW_GPREDICT_FREQUENCY_IGNORE = 2,
+};
+
+/** One spacecraft and the rules that apply while it is selected. */
+struct kfsw_gpredict_profile {
+	char name[KFSW_GPREDICT_PROFILE_NAME_MAX];
+	/** Catalogue number, so an operator can check it against Gpredict. */
+	uint32_t catalogue;
+	/** Travel this profile allows, in millidegrees. */
+	int32_t azimuth_min_mdeg;
+	int32_t azimuth_max_mdeg;
+	int32_t elevation_min_mdeg;
+	int32_t elevation_max_mdeg;
+	/** The frequency to hold, in hertz. Read only under HOLD. */
+	uint64_t frequency_hz;
+	/** enum kfsw_gpredict_frequency_policy */
+	uint8_t policy;
+	/** False leaves the profile defined but unselectable. */
+	bool enabled;
+};
+
+/**
+ * @brief Define a profile at an index, replacing whatever was there.
+ *
+ * @retval 0 Defined.
+ * @retval -EINVAL A NULL, an empty name, a travel outside the rotator's own
+ *         limits, an unknown policy, or HOLD with no frequency to hold.
+ * @retval -ENOSPC @p index is past the compiled profile count.
+ */
+int kfsw_gpredict_profile_define(uint8_t index, const struct kfsw_gpredict_profile *profile);
+
+/**
+ * @brief Choose the profile whose rules apply.
+ *
+ * Selecting does not move the antenna: it changes what the next bearing is
+ * judged against, and a pass already running keeps its state.
+ *
+ * @retval 0 Selected.
+ * @retval -ENOENT No profile is defined at @p index.
+ * @retval -EPERM The profile is defined but not enabled.
+ */
+int kfsw_gpredict_profile_select(uint8_t index);
+
+/** Enable or disable a profile. Disabling the selected one refuses with -EBUSY. */
+int kfsw_gpredict_profile_enable(uint8_t index, bool enabled);
+
+/** Read one profile. Returns -ENOENT for an index that holds nothing. */
+int kfsw_gpredict_profile_get(uint8_t index, struct kfsw_gpredict_profile *profile);
+
+/** Index of the selected profile, or -ENOENT when none is. */
+int kfsw_gpredict_profile_selected(void);
+
+/**
+ * @brief Judge a bearing against the selected profile.
+ *
+ * This is what the proxy asks before forwarding. It applies the profile's
+ * travel on top of the rotator's own limits, so a profile can narrow the
+ * travel and never widen it.
+ *
+ * @retval 0 Allowed, and the tracker has taken it.
+ * @retval -ENOENT No profile is selected.
+ * @retval -EINVAL Outside the profile's travel or the rotator's.
+ * @retval -EPERM The tracker is in fault.
+ */
+int kfsw_gpredict_profile_bearing(const struct kfsw_gpredict_bearing *bearing);
+
+/**
+ * @brief Ask what to send the radio for a frequency Gpredict offered.
+ *
+ * @param[in] offered What Gpredict sent, in hertz.
+ * @param[out] send What to forward, in hertz. Zero means forward nothing.
+ * @retval 0 Decided.
+ * @retval -ENOENT No profile is selected.
+ * @retval -EINVAL A NULL destination, or a zero offer.
+ */
+int kfsw_gpredict_profile_frequency(uint64_t offered, uint64_t *send);
+
+/** The module's commands, for a composition to register. */
+extern const struct kfsw_command_definition_set kfsw_gpredict_command_definitions;
+
+/** @} */
 
 /** @} */
 
