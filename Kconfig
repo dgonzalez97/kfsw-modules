@@ -1,6 +1,7 @@
 menu "K-FSW reusable modules"
 
 source "$(ZEPHYR_KFSW_MODULES_MODULE_DIR)/boton-test/Kconfig"
+source "$(ZEPHYR_KFSW_MODULES_MODULE_DIR)/gpredict/Kconfig"
 source "$(ZEPHYR_KFSW_MODULES_MODULE_DIR)/radio-uhf/Kconfig"
 source "$(ZEPHYR_KFSW_MODULES_MODULE_DIR)/temperature-sensor-example/Kconfig"
 
