@@ -49,7 +49,11 @@ enum kfsw_gpredict_state {
 	 * stalls for a second is not a pass that ended.
 	 */
 	KFSW_GPREDICT_HOLDING = 2,
-	/** On the way to the park position, after the pass or on command. */
+	/**
+	 * On the way to the park position, after the pass or on command. It is
+	 * left when the rotator reports it arrived, so until a rotator driver
+	 * exists this state is where a build without one stays.
+	 */
 	KFSW_GPREDICT_PARKING = 3,
 	/**
 	 * The rotator reported a problem, or a bearing was refused. Tracking

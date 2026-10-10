@@ -398,12 +398,22 @@ void gpredict_grace_set(uint32_t grace_ms)
 
 void gpredict_silence_check(void)
 {
+	uint32_t waited;
+
 	(void)k_mutex_lock(&tracker_lock, K_FOREVER);
-	if (pass_is_live() && (silence_now() >= tracker.grace_ms)) {
+	waited = silence_now();
+	if (pass_is_live() && (waited >= tracker.grace_ms)) {
 		apply_event(KFSW_GPREDICT_EVENT_SILENCE);
 	}
 	if (pass_is_live()) {
-		(void)k_work_reschedule(&silence_work, K_MSEC(tracker.grace_ms));
+		/*
+		 * Wake when the grace period is actually up, not a whole one
+		 * later. Waking early by a tick and then waiting again would
+		 * take two periods to notice a pass that ended.
+		 */
+		(void)k_work_reschedule(&silence_work, K_MSEC((waited < tracker.grace_ms)
+								      ? (tracker.grace_ms - waited)
+								      : tracker.grace_ms));
 	}
 	k_mutex_unlock(&tracker_lock);
 }
