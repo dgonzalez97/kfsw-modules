@@ -3,6 +3,7 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/sys/byteorder.h>
+#include <zephyr/sys/util.h>
 #include <psa/crypto.h>
 #include <kfsw/comms/csp.h>
 #include <kfsw/comms/uart_codec.h>
@@ -15,6 +16,8 @@
 #define LOCAL CONFIG_KFSW_CSP_ADDRESS
 #define PEER CONFIG_KFSW_CSP_UART_PEER_ADDRESS
 #define NONCE_BYTES 16U
+/* A 256-bit key written as hexadecimal, two characters to the byte. */
+#define KEY_TEXT_LENGTH 64U
 #define MAC_BYTES 32U
 #define TAG_BYTES 16U
 #define DATA_HEADER 12U
@@ -434,34 +437,22 @@ int radio_crypto_validate_switch(const union kfsw_param_scalar *value)
 	return value->u8 <= 1U ? 0 : -EINVAL;
 }
 
-static int nibble(char c)
-{
-	if (c >= '0' && c <= '9') {
-		return c - '0';
-	}
-	if (c >= 'a' && c <= 'f') {
-		return c - 'a' + 10;
-	}
-	if (c >= 'A' && c <= 'F') {
-		return c - 'A' + 10;
-	}
-	return -1;
-}
-
 int radio_crypto_validate_key(const char *text)
 {
 	if (!initialized && text[0] == '\0') {
 		return 0;
 	}
-	if (strlen(text) != 64) {
+	uint8_t key[KEY_TEXT_LENGTH / 2U];
+	bool valid;
+
+	if (strlen(text) != KEY_TEXT_LENGTH) {
 		return -EINVAL;
 	}
-	for (size_t i = 0; i < 64; i++) {
-		if (nibble(text[i]) < 0) {
-			return -EINVAL;
-		}
-	}
-	return 0;
+	/* hex2bin refuses a byte that is not hexadecimal, so this both checks the
+	   text and proves it fits the key. */
+	valid = hex2bin(text, KEY_TEXT_LENGTH, key, sizeof(key)) == sizeof(key);
+	radio_crypto_clear(key, sizeof(key));
+	return valid ? 0 : -EINVAL;
 }
 
 static void save_settings(struct radio_crypto_settings *next, bool changed_key)
@@ -488,15 +479,19 @@ static void save_settings(struct radio_crypto_settings *next, bool changed_key)
 
 void radio_crypto_set_key(const char *text)
 {
-	if (!initialized || strlen(text) != 64) {
+	if (!initialized || strlen(text) != KEY_TEXT_LENGTH) {
 		return;
 	}
 	k_mutex_lock(&settings_lock, K_FOREVER);
 	k_mutex_lock(&crypto_lock, K_FOREVER);
 	struct radio_crypto_settings next = settings;
 	k_mutex_unlock(&crypto_lock);
-	for (size_t i = 0; i < sizeof(next.key); i++) {
-		next.key[i] = (uint8_t)((nibble(text[2 * i]) << 4) | nibble(text[2 * i + 1]));
+	if (hex2bin(text, KEY_TEXT_LENGTH, next.key, sizeof(next.key)) != sizeof(next.key)) {
+		/* Reached only if the text was never validated: refuse rather than
+		   install a key built from whatever the bad bytes decoded to. */
+		radio_crypto_clear(&next, sizeof(next));
+		k_mutex_unlock(&settings_lock);
+		return;
 	}
 	next.key_set = true;
 	save_settings(&next, true);
