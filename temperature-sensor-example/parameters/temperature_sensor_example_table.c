@@ -92,6 +92,8 @@ static const struct kfsw_param_definition temp_example_param_definitions[] = {
 	},
 };
 
+KFSW_PARAM_TABLE_FITS_THE_LINK(temp_example_param_definitions);
+
 const struct kfsw_param_definition_set kfsw_temp_example_param_definitions = {
 	.table = KFSW_TEMP_EXAMPLE_TABLE_ID,
 	.name = KFSW_TEMP_EXAMPLE_TABLE_NAME,

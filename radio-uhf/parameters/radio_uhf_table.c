@@ -274,6 +274,8 @@ static const struct kfsw_param_definition radio_uhf_param_definitions[] = {
 
 };
 
+KFSW_PARAM_TABLE_FITS_THE_LINK(radio_uhf_param_definitions);
+
 const struct kfsw_param_definition_set kfsw_radio_uhf_param_definitions = {
 	.table = KFSW_RADIO_UHF_PARAM_TABLE_ID,
 	.name = KFSW_RADIO_UHF_PARAM_TABLE_NAME,
