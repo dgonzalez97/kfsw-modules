@@ -300,6 +300,8 @@ static const struct kfsw_param_definition boton_test_param_definitions[] = {
 	},
 };
 
+KFSW_PARAM_TABLE_FITS_THE_LINK(boton_test_param_definitions);
+
 const struct kfsw_param_definition_set kfsw_boton_test_param_definitions = {
 	.table = KFSW_HW_TEST_TABLE_ID,
 	.name = KFSW_HW_TEST_TABLE_NAME,
