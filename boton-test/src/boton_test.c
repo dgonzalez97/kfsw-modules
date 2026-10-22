@@ -100,38 +100,24 @@ int kfsw_boton_test_set_led(enum kfsw_boton_test_led led, bool on)
 	return result;
 }
 
-static int validate_led(enum kfsw_boton_test_led led, const union kfsw_param_scalar *value)
+static int validate_led(const union kfsw_param_scalar *value)
 {
-	int result = 0;
-
-	if ((value == NULL) || (value->u8 > 1U)) {
-		return -ERANGE;
-	}
-
-	/* PARAM validates defaults before module initialization. Runtime writes
-	 * apply the GPIO first so a hardware failure rejects the PARAM write.
-	 */
-	k_mutex_lock(&kfsw_boton_test_lock, K_FOREVER);
-	if (boton_test_initialized) {
-		result = set_led_locked(led, value->u8 != 0U);
-	}
-	k_mutex_unlock(&kfsw_boton_test_lock);
-	return result;
+	return ((value == NULL) || (value->u8 > 1U)) ? -ERANGE : 0;
 }
 
-static int validate_green_led(const union kfsw_param_scalar *value)
+static int apply_green_led(const union kfsw_param_scalar *value)
 {
-	return validate_led(KFSW_BOTON_TEST_LED_GREEN, value);
+	return kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_GREEN, value->u8 != 0U);
 }
 
-static int validate_blue_led(const union kfsw_param_scalar *value)
+static int apply_blue_led(const union kfsw_param_scalar *value)
 {
-	return validate_led(KFSW_BOTON_TEST_LED_BLUE, value);
+	return kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_BLUE, value->u8 != 0U);
 }
 
-static int validate_red_led(const union kfsw_param_scalar *value)
+static int apply_red_led(const union kfsw_param_scalar *value)
 {
-	return validate_led(KFSW_BOTON_TEST_LED_RED, value);
+	return kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_RED, value->u8 != 0U);
 }
 
 void kfsw_boton_test_process_level(bool pressed, uint64_t monotonic_ms)
@@ -274,7 +260,8 @@ static const struct kfsw_param_definition boton_test_param_definitions[] = {
 		.description = "Logical green developer LED state",
 		.value = &boton_test_status.led_green,
 		.default_value = {.u8 = 0U},
-		.validate = validate_green_led,
+		.validate = validate_led,
+		.apply = apply_green_led,
 	},
 	{
 		.offset = 0x09U,
@@ -285,7 +272,8 @@ static const struct kfsw_param_definition boton_test_param_definitions[] = {
 		.description = "Logical blue developer LED state",
 		.value = &boton_test_status.led_blue,
 		.default_value = {.u8 = 0U},
-		.validate = validate_blue_led,
+		.validate = validate_led,
+		.apply = apply_blue_led,
 	},
 	{
 		.offset = 0x0aU,
@@ -296,7 +284,8 @@ static const struct kfsw_param_definition boton_test_param_definitions[] = {
 		.description = "Logical red developer LED state",
 		.value = &boton_test_status.led_red,
 		.default_value = {.u8 = 0U},
-		.validate = validate_red_led,
+		.validate = validate_led,
+		.apply = apply_red_led,
 	},
 };
 
