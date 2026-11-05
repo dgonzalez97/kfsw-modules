@@ -10,10 +10,10 @@ extern "C" {
 
 struct kfsw_param_definition_set;
 
-/** Parameter table of the hardware test example. */
-#define KFSW_HW_TEST_TABLE_ID 67U
-/** Parameter table name. */
-#define KFSW_HW_TEST_TABLE_NAME "hw_test"
+/** Parameter table of the button example, in the module band. */
+#define KFSW_BOTON_TEST_PARAM_TABLE_ID 67U
+/** Parameter table name, kept from when the module was the hardware test. */
+#define KFSW_BOTON_TEST_PARAM_TABLE_NAME "hw_test"
 
 /** @defgroup kfsw_modules_boton_test Button test
  *  @ingroup kfsw_modules

@@ -1,6 +1,13 @@
 set(kfsw_boton_test_sources
     src/boton_test.c
+    parameters/boton_test_table.c
 )
+
+if(CONFIG_KFSW_BOTON_TEST_SHELL)
+    list(APPEND kfsw_boton_test_sources
+        src/boton_test_shell.c
+    )
+endif()
 
 if(CONFIG_KFSW_BOTON_TEST_GPIO OR CONFIG_KFSW_BOTON_TEST_LED_GPIO)
     list(APPEND kfsw_boton_test_sources

@@ -266,8 +266,8 @@ ZTEST(boton_test, test_parameter_definition_set_has_stable_nonpersistent_ids)
 	const struct kfsw_param_definition *led_blue = find_definition("led_blue");
 	const struct kfsw_param_definition *led_red = find_definition("led_red");
 
-	zassert_equal(KFSW_HW_TEST_TABLE_ID, 67U);
-	zassert_equal(strcmp(KFSW_HW_TEST_TABLE_NAME, "hw_test"), 0);
+	zassert_equal(KFSW_BOTON_TEST_PARAM_TABLE_ID, 67U);
+	zassert_equal(strcmp(KFSW_BOTON_TEST_PARAM_TABLE_NAME, "hw_test"), 0);
 	zassert_equal(kfsw_boton_test_param_definitions.count, 5U);
 	zassert_not_null(press_count);
 	zassert_not_null(last_press_s);
@@ -281,9 +281,9 @@ ZTEST(boton_test, test_parameter_definition_set_has_stable_nonpersistent_ids)
 	zassert_equal(led_red->offset, HW_TEST_LED_RED_OFFSET);
 
 	/* A module table must be in the module band. */
-	zassert_equal(kfsw_boton_test_param_definitions.table, KFSW_HW_TEST_TABLE_ID);
-	zassert_str_equal(kfsw_boton_test_param_definitions.name, KFSW_HW_TEST_TABLE_NAME);
-	zassert_str_equal(kfsw_param_band_name(KFSW_HW_TEST_TABLE_ID), "module");
+	zassert_equal(kfsw_boton_test_param_definitions.table, KFSW_BOTON_TEST_PARAM_TABLE_ID);
+	zassert_str_equal(kfsw_boton_test_param_definitions.name, KFSW_BOTON_TEST_PARAM_TABLE_NAME);
+	zassert_str_equal(kfsw_param_band_name(KFSW_BOTON_TEST_PARAM_TABLE_ID), "module");
 	zassert_equal(press_count->type, KFSW_PARAM_U32);
 	zassert_equal(last_press_s->type, KFSW_PARAM_U32);
 	zassert_equal(led_green->type, KFSW_PARAM_U8);

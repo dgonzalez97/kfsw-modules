@@ -13,6 +13,9 @@
 #include "boton_test_internal.h"
 
 #if CONFIG_KFSW_BOTON_TEST_GPIO
+/* TODO(template): the hardware backend. Everything here is bound from
+ * devicetree, and the generic layer builds and tests without this file.
+ */
 #define KFSW_BOTON_TEST_BUTTON_NODE DT_CHOSEN(kfsw_boton_test_button)
 
 BUILD_ASSERT(DT_NODE_EXISTS(KFSW_BOTON_TEST_BUTTON_NODE),
@@ -25,7 +28,7 @@ static const struct gpio_dt_spec boton_test_button =
 static struct gpio_callback boton_test_gpio_callback;
 
 static void boton_test_debounce_work_handler(struct k_work *work);
-K_WORK_DELAYABLE_DEFINE(boton_test_debounce_work, boton_test_debounce_work_handler);
+static K_WORK_DELAYABLE_DEFINE(boton_test_debounce_work, boton_test_debounce_work_handler);
 
 static void boton_test_debounce_work_handler(struct k_work *work)
 {
