@@ -4,6 +4,8 @@
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/crc.h>
 
+#include <kfsw/services/snapshot.h>
+
 #include "radio_crypto_internal.h"
 
 #define SETTINGS_PATH "/kfsw/radio-uhf.key"
@@ -49,29 +51,15 @@ int radio_crypto_store_load(struct radio_crypto_settings *settings)
 
 int radio_crypto_store_save(const struct radio_crypto_settings *settings)
 {
-	struct fs_file_t file;
 	uint8_t data[SETTINGS_BYTES] = {'K', 'R', 'U', '1'};
 
 	data[4] = (settings->enabled ? 1U : 0U) | (settings->tx ? 2U : 0U) |
 		  (settings->rx ? 4U : 0U) | (settings->key_set ? 8U : 0U);
 	memcpy(data + 8, settings->key, sizeof(settings->key));
 	sys_put_be32(crc32_ieee(data, 40), data + 40);
-	fs_file_t_init(&file);
-	int result = fs_open(&file, TEMP_PATH, FS_O_CREATE | FS_O_TRUNC | FS_O_WRITE);
 
-	if (result == 0) {
-		ssize_t written = fs_write(&file, data, sizeof(data));
+	int result = kfsw_snapshot_write(SETTINGS_PATH, TEMP_PATH, data, sizeof(data));
 
-		result = written == sizeof(data) ? fs_sync(&file) : -EIO;
-		int closed = fs_close(&file);
-
-		if (result == 0) {
-			result = closed;
-		}
-		if (result == 0) {
-			result = fs_rename(TEMP_PATH, SETTINGS_PATH);
-		}
-	}
 	radio_crypto_clear(data, sizeof(data));
 	return result;
 }
