@@ -8,6 +8,10 @@
 
 #include "temperature_sensor_example_internal.h"
 
+/* TODO(template): the hardware backend. Bind the device from devicetree here and
+ * keep everything else in the generic file, so the module builds and tests
+ * with this file left out.
+ */
 #define KFSW_TEMP_EXAMPLE_NODE DT_CHOSEN(kfsw_die_temp)
 
 BUILD_ASSERT(DT_NODE_EXISTS(KFSW_TEMP_EXAMPLE_NODE),
@@ -32,6 +36,7 @@ int kfsw_temp_example_sensor_read(int32_t *milli_c)
 		return -EINVAL;
 	}
 
+	/* TODO(template): the conversion of one reading for this sensor. */
 	result = sensor_sample_fetch_chan(temp_sensor, SENSOR_CHAN_DIE_TEMP);
 	if (result != 0) {
 		return result;

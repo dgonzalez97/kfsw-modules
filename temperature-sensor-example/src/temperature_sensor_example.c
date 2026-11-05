@@ -4,12 +4,13 @@
 #include <string.h>
 
 #include <zephyr/kernel.h>
+#include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/util.h>
-#if CONFIG_KFSW_TEMP_EXAMPLE_SHELL
-#include <zephyr/shell/shell.h>
-#endif
 
 #include <kfsw/platform/time.h>
+#if CONFIG_KFSW_EVENT
+#include <kfsw/services/event.h>
+#endif
 #include <kfsw/services/log.h>
 
 #include "temperature_sensor_example_internal.h"
@@ -26,9 +27,31 @@ static struct kfsw_temp_example_reading cached = {
 static K_MUTEX_DEFINE(cache_lock);
 static bool initialized;
 static uint64_t last_success_ms;
+static int32_t alarm_milli_c = CONFIG_KFSW_TEMP_EXAMPLE_ALARM_MILLI_C;
+
+static void report_alarm(bool raised, int32_t milli_c)
+{
+#if CONFIG_KFSW_EVENT
+	uint8_t payload[sizeof(int32_t)];
+
+	sys_put_be32((uint32_t)milli_c, payload);
+	kfsw_event_emit(KFSW_EVENT_SOURCE_APP,
+			raised ? KFSW_EVENT_TEMP_EXAMPLE_ALARM
+			       : KFSW_EVENT_TEMP_EXAMPLE_ALARM_CLEARED,
+			raised ? KFSW_EVENT_WARNING : KFSW_EVENT_INFO, payload, sizeof(payload));
+#endif
+	if (raised) {
+		kfsw_log_warning("Temperature %d mC reached the alarm threshold", milli_c);
+	} else {
+		kfsw_log_info("Temperature %d mC is back below the alarm threshold", milli_c);
+	}
+}
 
 void kfsw_temp_example_store(int32_t milli_c, uint64_t monotonic_ms)
 {
+	bool was_alarm;
+	bool is_alarm;
+
 	(void)k_mutex_lock(&cache_lock, K_FOREVER);
 	cached.milli_c = milli_c;
 	cached.last_uptime_ms = (uint32_t)monotonic_ms;
@@ -37,7 +60,18 @@ void kfsw_temp_example_store(int32_t milli_c, uint64_t monotonic_ms)
 	if (cached.samples < UINT32_MAX) {
 		cached.samples++;
 	}
+	was_alarm = cached.alarm;
+	is_alarm = milli_c >= alarm_milli_c;
+	cached.alarm = is_alarm;
+	if (is_alarm && !was_alarm && (cached.alarms < UINT32_MAX)) {
+		cached.alarms++;
+	}
 	k_mutex_unlock(&cache_lock);
+
+	/* Outside the lock: the event ring and the log take their own. */
+	if (is_alarm != was_alarm) {
+		report_alarm(is_alarm, milli_c);
+	}
 }
 
 void kfsw_temp_example_store_failure(void)
@@ -50,6 +84,34 @@ void kfsw_temp_example_store_failure(void)
 		cached.failures++;
 	}
 	k_mutex_unlock(&cache_lock);
+}
+
+int kfsw_temp_example_set_alarm(int32_t milli_c)
+{
+	if ((milli_c < KFSW_TEMP_EXAMPLE_ALARM_MIN_MILLI_C) ||
+	    (milli_c > KFSW_TEMP_EXAMPLE_ALARM_MAX_MILLI_C)) {
+		return -ERANGE;
+	}
+	(void)k_mutex_lock(&cache_lock, K_FOREVER);
+	alarm_milli_c = milli_c;
+	k_mutex_unlock(&cache_lock);
+	return 0;
+}
+
+int kfsw_temp_example_clear(void)
+{
+	int result = 0;
+
+	(void)k_mutex_lock(&cache_lock, K_FOREVER);
+	if (!initialized) {
+		result = -EACCES;
+	} else {
+		cached.samples = 0U;
+		cached.failures = 0U;
+		cached.alarms = 0U;
+	}
+	k_mutex_unlock(&cache_lock);
+	return result;
 }
 
 #if CONFIG_KFSW_TEMP_EXAMPLE_SENSOR
@@ -94,7 +156,7 @@ static void poll_work_handler(struct k_work *work)
 
 int kfsw_temp_example_init(void)
 {
-	k_mutex_lock(&cache_lock, K_FOREVER);
+	(void)k_mutex_lock(&cache_lock, K_FOREVER);
 	if (initialized) {
 		k_mutex_unlock(&cache_lock);
 		return 0;
@@ -123,7 +185,7 @@ int kfsw_temp_example_get(struct kfsw_temp_example_reading *reading)
 	if (reading == NULL) {
 		return -EINVAL;
 	}
-	k_mutex_lock(&cache_lock, K_FOREVER);
+	(void)k_mutex_lock(&cache_lock, K_FOREVER);
 	if (!initialized) {
 		k_mutex_unlock(&cache_lock);
 		return -EACCES;
@@ -139,42 +201,3 @@ int kfsw_temp_example_get(struct kfsw_temp_example_reading *reading)
 	k_mutex_unlock(&cache_lock);
 	return 0;
 }
-
-#if CONFIG_KFSW_TEMP_EXAMPLE_SHELL
-static int cmd_temp_status(const struct shell *sh, size_t argc, char **argv)
-{
-	struct kfsw_temp_example_reading reading;
-	int result;
-
-	ARG_UNUSED(argc);
-	ARG_UNUSED(argv);
-
-	result = kfsw_temp_example_get(&reading);
-	if (result != 0) {
-		shell_error(sh, "temperature unavailable (%d)", result);
-		return result;
-	}
-
-	if (reading.valid) {
-		/* Whole degrees and thousandths, to avoid float printing. The sign is kept
-		 * separately because -0.5 C has a whole part of 0.
-		 */
-		int32_t magnitude = (reading.milli_c < 0) ? -reading.milli_c : reading.milli_c;
-
-		shell_print(sh, "die: %s%d.%03d C", (reading.milli_c < 0) ? "-" : "",
-			    magnitude / 1000, magnitude % 1000);
-	} else {
-		shell_print(sh, "die: absent");
-	}
-	shell_print(sh, "samples: %u", reading.samples);
-	shell_print(sh, "failures: %u", reading.failures);
-	shell_print(sh, "last read at: %u ms", reading.last_uptime_ms);
-	return 0;
-}
-
-SHELL_STATIC_SUBCMD_SET_CREATE(temp_commands,
-	SHELL_CMD_ARG(status, NULL, "Show the cached die temperature.", cmd_temp_status, 1, 0),
-	SHELL_SUBCMD_SET_END);
-
-SHELL_CMD_REGISTER(temp, &temp_commands, "Temperature example: the MCU die reading.", NULL);
-#endif
