@@ -3,12 +3,6 @@ set(kfsw_button_test_sources
     parameters/button_test_table.c
 )
 
-if(CONFIG_KFSW_BUTTON_TEST_SHELL)
-    list(APPEND kfsw_button_test_sources
-        src/button_test_shell.c
-    )
-endif()
-
 if(CONFIG_KFSW_BUTTON_TEST_GPIO OR CONFIG_KFSW_BUTTON_TEST_LED_GPIO)
     list(APPEND kfsw_button_test_sources
         src/button_test_gpio.c
@@ -33,3 +27,13 @@ target_link_libraries(kfsw_button_test
         kfsw::platform
         kfsw::services
 )
+
+# The shell group is a linker section that nothing calls, so an archive member
+# holding only that section is never pulled in and the commands never reach the
+# image. A Zephyr library is linked whole, which is how the rest of the system
+# keeps its registrations.
+if(CONFIG_KFSW_BUTTON_TEST_SHELL)
+    zephyr_library_named(kfsw_button_test_shell)
+    zephyr_library_sources(src/button_test_shell.c)
+    zephyr_library_link_libraries(kfsw::button_test)
+endif()

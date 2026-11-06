@@ -133,6 +133,23 @@ implementations, a shell command and tests. Only create the directories you
 need: `radio-uhf` has an interface, a table and a Holybro implementation, but no
 health directory.
 
+A shell command file is the one part that does not belong in the module's static
+archive. Nothing calls into a shell group; the shell finds it through a linker
+section, so a member holding only that section is never pulled in and the
+commands are absent from `help` with nothing reporting a problem. Give the file
+a Zephyr library instead, which is linked whole:
+
+```cmake
+if(CONFIG_KFSW_BUTTON_TEST_SHELL)
+    zephyr_library_named(kfsw_button_test_shell)
+    zephyr_library_sources(src/button_test_shell.c)
+    zephyr_library_link_libraries(kfsw::button_test)
+endif()
+```
+
+`radio-uhf` needs none of this because its shell code sits in `radio_uhf.c`
+next to functions the application calls, which pulls the member in anyway.
+
 ## License
 
 Licensed under [Apache 2.0](LICENSE). Third-party dependencies retain their
