@@ -1,5 +1,5 @@
 tests:
-  kfsw.modules.boton_test:
+  kfsw.modules.button_test:
     tags:
       - kfsw
       - modules
@@ -10,8 +10,8 @@ tests:
     integration_platforms:
       - native_sim/native/64
     extra_configs:
-      - CONFIG_KFSW_BOTON_TEST_GPIO=n
-  kfsw.modules.boton_test.gpio:
+      - CONFIG_KFSW_BUTTON_TEST_GPIO=n
+  kfsw.modules.button_test.gpio:
     tags:
       - kfsw
       - modules
@@ -25,6 +25,6 @@ tests:
     extra_configs:
       - CONFIG_GPIO=y
       - CONFIG_GPIO_EMUL=y
-      - CONFIG_KFSW_BOTON_TEST_GPIO=y
-      - CONFIG_KFSW_BOTON_TEST_LED_GPIO=y
-      - CONFIG_KFSW_BOTON_TEST_DEBOUNCE_MS=30
+      - CONFIG_KFSW_BUTTON_TEST_GPIO=y
+      - CONFIG_KFSW_BUTTON_TEST_LED_GPIO=y
+      - CONFIG_KFSW_BUTTON_TEST_DEBOUNCE_MS=30

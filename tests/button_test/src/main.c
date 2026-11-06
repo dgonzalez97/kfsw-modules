@@ -5,47 +5,47 @@
 #include <zephyr/sys/util.h>
 #include <zephyr/ztest.h>
 
-#if CONFIG_KFSW_BOTON_TEST_GPIO
+#if CONFIG_KFSW_BUTTON_TEST_GPIO
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/gpio/gpio_emul.h>
 #include <zephyr/kernel.h>
 #endif
 
-#include <kfsw/modules/boton_test.h>
+#include <kfsw/modules/button_test.h>
 #include <kfsw/services/parameter.h>
 
-#include "boton_test_internal.h"
+#include "button_test_internal.h"
 
 /* Offsets within table 67. */
-#define BOTON_TEST_PRESS_COUNT_OFFSET 0x00U
-#define BOTON_TEST_LAST_PRESS_S_OFFSET 0x04U
+#define BUTTON_TEST_PRESS_COUNT_OFFSET 0x00U
+#define BUTTON_TEST_LAST_PRESS_S_OFFSET 0x04U
 #define HW_TEST_LED_GREEN_OFFSET 0x08U
 #define HW_TEST_LED_BLUE_OFFSET 0x09U
 #define HW_TEST_LED_RED_OFFSET 0x0aU
 
-#if CONFIG_KFSW_BOTON_TEST_GPIO
-#define BOTON_TEST_BUTTON_NODE DT_CHOSEN(kfsw_boton_test_button)
-#define BOTON_TEST_BOUNCE_STEP_MS 5U
-#define BOTON_TEST_SETTLE_MARGIN_MS 15U
+#if CONFIG_KFSW_BUTTON_TEST_GPIO
+#define BUTTON_TEST_BUTTON_NODE DT_CHOSEN(kfsw_button_test_button)
+#define BUTTON_TEST_BOUNCE_STEP_MS 5U
+#define BUTTON_TEST_SETTLE_MARGIN_MS 15U
 
-static const struct gpio_dt_spec boton_test_button =
-	GPIO_DT_SPEC_GET(BOTON_TEST_BUTTON_NODE, gpios);
-static const struct gpio_dt_spec boton_test_green_led =
-	GPIO_DT_SPEC_GET(DT_CHOSEN(kfsw_boton_test_led_green), gpios);
-static const struct gpio_dt_spec boton_test_blue_led =
-	GPIO_DT_SPEC_GET(DT_CHOSEN(kfsw_boton_test_led_blue), gpios);
-static const struct gpio_dt_spec boton_test_red_led =
-	GPIO_DT_SPEC_GET(DT_CHOSEN(kfsw_boton_test_led_red), gpios);
+static const struct gpio_dt_spec button_test_button =
+	GPIO_DT_SPEC_GET(BUTTON_TEST_BUTTON_NODE, gpios);
+static const struct gpio_dt_spec button_test_green_led =
+	GPIO_DT_SPEC_GET(DT_CHOSEN(kfsw_button_test_led_green), gpios);
+static const struct gpio_dt_spec button_test_blue_led =
+	GPIO_DT_SPEC_GET(DT_CHOSEN(kfsw_button_test_led_blue), gpios);
+static const struct gpio_dt_spec button_test_red_led =
+	GPIO_DT_SPEC_GET(DT_CHOSEN(kfsw_button_test_led_red), gpios);
 
 static void set_raw_button_level(int value)
 {
-	zassert_ok(gpio_emul_input_set(boton_test_button.port, boton_test_button.pin, value));
+	zassert_ok(gpio_emul_input_set(button_test_button.port, button_test_button.pin, value));
 }
 
 static void wait_for_debounce(void)
 {
-	k_sleep(K_MSEC(CONFIG_KFSW_BOTON_TEST_DEBOUNCE_MS + BOTON_TEST_SETTLE_MARGIN_MS));
+	k_sleep(K_MSEC(CONFIG_KFSW_BUTTON_TEST_DEBOUNCE_MS + BUTTON_TEST_SETTLE_MARGIN_MS));
 }
 #endif
 
@@ -63,9 +63,9 @@ struct parameter_visit_summary {
 
 static const struct kfsw_param_definition *find_definition(const char *name)
 {
-	for (size_t index = 0U; index < kfsw_boton_test_param_definitions.count; index++) {
+	for (size_t index = 0U; index < kfsw_button_test_param_definitions.count; index++) {
 		const struct kfsw_param_definition *definition =
-			&kfsw_boton_test_param_definitions.definitions[index];
+			&kfsw_button_test_param_definitions.definitions[index];
 
 		if (strcmp(definition->name, name) == 0) {
 			return definition;
@@ -95,45 +95,45 @@ static bool summarize_parameter(const struct kfsw_param_info *info, void *contex
 	return true;
 }
 
-static void *boton_test_setup(void)
+static void *button_test_setup(void)
 {
 	const struct kfsw_param_definition_set *const parameter_sets[] = {
-		&kfsw_boton_test_param_definitions,
+		&kfsw_button_test_param_definitions,
 	};
 
 	zassert_ok(kfsw_param_init(parameter_sets, ARRAY_SIZE(parameter_sets)));
 
-#if CONFIG_KFSW_BOTON_TEST_GPIO
-	zassert_true(gpio_is_ready_dt(&boton_test_button));
-	zassert_ok(gpio_pin_configure_dt(&boton_test_button, GPIO_INPUT));
+#if CONFIG_KFSW_BUTTON_TEST_GPIO
+	zassert_true(gpio_is_ready_dt(&button_test_button));
+	zassert_ok(gpio_pin_configure_dt(&button_test_button, GPIO_INPUT));
 	set_raw_button_level(1);
 #endif
 
-	zassert_ok(kfsw_boton_test_init());
+	zassert_ok(kfsw_button_test_init());
 	return NULL;
 }
 
-static void boton_test_before(void *fixture)
+static void button_test_before(void *fixture)
 {
 	ARG_UNUSED(fixture);
 
-#if CONFIG_KFSW_BOTON_TEST_GPIO
+#if CONFIG_KFSW_BUTTON_TEST_GPIO
 	set_raw_button_level(1);
 	wait_for_debounce();
 #endif
 
-	kfsw_boton_test_state_reset(false);
+	kfsw_button_test_state_reset(false);
 }
 
-ZTEST(boton_test, test_initial_status_and_null_destination)
+ZTEST(button_test, test_initial_status_and_null_destination)
 {
-	struct kfsw_boton_test_status status = {
+	struct kfsw_button_test_status status = {
 		.press_count = UINT32_MAX,
 		.last_press_s = UINT32_MAX,
 	};
 
-	zassert_equal(kfsw_boton_test_get_status(NULL), -EINVAL);
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	zassert_equal(kfsw_button_test_get_status(NULL), -EINVAL);
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_equal(status.press_count, 0U);
 	zassert_equal(status.last_press_s, 0U);
 	zassert_false(status.led_green);
@@ -141,9 +141,9 @@ ZTEST(boton_test, test_initial_status_and_null_destination)
 	zassert_false(status.led_red);
 }
 
-ZTEST(boton_test, test_status_is_unavailable_before_initialization)
+ZTEST(button_test, test_status_is_unavailable_before_initialization)
 {
-	struct kfsw_boton_test_status status = {
+	struct kfsw_button_test_status status = {
 		.press_count = UINT32_MAX,
 		.last_press_s = UINT32_MAX,
 		.led_green = true,
@@ -151,114 +151,114 @@ ZTEST(boton_test, test_status_is_unavailable_before_initialization)
 		.led_red = true,
 	};
 
-	kfsw_boton_test_test_disable();
-	zassert_equal(kfsw_boton_test_get_status(&status), -EACCES);
+	kfsw_button_test_test_disable();
+	zassert_equal(kfsw_button_test_get_status(&status), -EACCES);
 	zassert_equal(status.press_count, UINT32_MAX);
 	zassert_equal(status.last_press_s, UINT32_MAX);
 	zassert_true(status.led_green);
 	zassert_true(status.led_blue);
 	zassert_true(status.led_red);
-	kfsw_boton_test_state_reset(false);
+	kfsw_button_test_state_reset(false);
 }
 
-ZTEST(boton_test, test_first_press_uses_floored_monotonic_seconds)
+ZTEST(button_test, test_first_press_uses_floored_monotonic_seconds)
 {
-	struct kfsw_boton_test_status status;
+	struct kfsw_button_test_status status;
 
-	kfsw_boton_test_process_level(true, 999U);
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	kfsw_button_test_process_level(true, 999U);
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_equal(status.press_count, 1U);
 	zassert_equal(status.last_press_s, 0U);
 
-	kfsw_boton_test_state_reset(false);
-	kfsw_boton_test_process_level(true, 1234U);
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	kfsw_button_test_state_reset(false);
+	kfsw_button_test_process_level(true, 1234U);
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_equal(status.press_count, 1U);
 	zassert_equal(status.last_press_s, 1U);
 }
 
-ZTEST(boton_test, test_hold_does_not_recount_and_release_rearms)
+ZTEST(button_test, test_hold_does_not_recount_and_release_rearms)
 {
-	struct kfsw_boton_test_status status;
+	struct kfsw_button_test_status status;
 
-	kfsw_boton_test_process_level(true, 1000U);
-	kfsw_boton_test_process_level(true, 2000U);
-	kfsw_boton_test_process_level(true, 3000U);
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	kfsw_button_test_process_level(true, 1000U);
+	kfsw_button_test_process_level(true, 2000U);
+	kfsw_button_test_process_level(true, 3000U);
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_equal(status.press_count, 1U);
 	zassert_equal(status.last_press_s, 1U);
 
-	kfsw_boton_test_process_level(false, 3500U);
-	kfsw_boton_test_process_level(true, 4999U);
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	kfsw_button_test_process_level(false, 3500U);
+	kfsw_button_test_process_level(true, 4999U);
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_equal(status.press_count, 2U);
 	zassert_equal(status.last_press_s, 4U);
 }
 
-ZTEST(boton_test, test_repeated_stable_samples_do_not_create_bounce_counts)
+ZTEST(button_test, test_repeated_stable_samples_do_not_create_bounce_counts)
 {
-	struct kfsw_boton_test_status status;
+	struct kfsw_button_test_status status;
 
-	kfsw_boton_test_process_level(true, 1000U);
-	kfsw_boton_test_process_level(true, 1001U);
-	kfsw_boton_test_process_level(true, 1002U);
-	kfsw_boton_test_process_level(false, 1100U);
-	kfsw_boton_test_process_level(false, 1101U);
-	kfsw_boton_test_process_level(true, 2200U);
-	kfsw_boton_test_process_level(true, 2201U);
+	kfsw_button_test_process_level(true, 1000U);
+	kfsw_button_test_process_level(true, 1001U);
+	kfsw_button_test_process_level(true, 1002U);
+	kfsw_button_test_process_level(false, 1100U);
+	kfsw_button_test_process_level(false, 1101U);
+	kfsw_button_test_process_level(true, 2200U);
+	kfsw_button_test_process_level(true, 2201U);
 
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_equal(status.press_count, 2U);
 	zassert_equal(status.last_press_s, 2U);
 }
 
-ZTEST(boton_test, test_reset_clears_state_and_initially_held_button_is_not_a_press)
+ZTEST(button_test, test_reset_clears_state_and_initially_held_button_is_not_a_press)
 {
-	struct kfsw_boton_test_status status;
+	struct kfsw_button_test_status status;
 
-	kfsw_boton_test_process_level(true, 1000U);
-	kfsw_boton_test_state_reset(true);
-	kfsw_boton_test_process_level(true, 2000U);
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	kfsw_button_test_process_level(true, 1000U);
+	kfsw_button_test_state_reset(true);
+	kfsw_button_test_process_level(true, 2000U);
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_equal(status.press_count, 0U);
 	zassert_equal(status.last_press_s, 0U);
 
-	kfsw_boton_test_process_level(false, 2100U);
-	kfsw_boton_test_process_level(true, 3000U);
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	kfsw_button_test_process_level(false, 2100U);
+	kfsw_button_test_process_level(true, 3000U);
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_equal(status.press_count, 1U);
 	zassert_equal(status.last_press_s, 3U);
 }
 
-ZTEST(boton_test, test_saturated_press_count_still_updates_timestamp)
+ZTEST(button_test, test_saturated_press_count_still_updates_timestamp)
 {
-	struct kfsw_boton_test_status status;
+	struct kfsw_button_test_status status;
 
-	kfsw_boton_test_test_set_press_count(UINT32_MAX);
-	kfsw_boton_test_process_level(true, 1000U);
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	kfsw_button_test_test_set_press_count(UINT32_MAX);
+	kfsw_button_test_process_level(true, 1000U);
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_equal(status.press_count, UINT32_MAX);
 	zassert_equal(status.last_press_s, 1U);
 
-	kfsw_boton_test_process_level(false, 2000U);
-	kfsw_boton_test_process_level(true, 5000U);
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	kfsw_button_test_process_level(false, 2000U);
+	kfsw_button_test_process_level(true, 5000U);
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_equal(status.press_count, UINT32_MAX);
 	zassert_equal(status.last_press_s, 5U);
 }
 
-ZTEST(boton_test, test_timestamp_saturates_instead_of_wrapping)
+ZTEST(button_test, test_timestamp_saturates_instead_of_wrapping)
 {
-	struct kfsw_boton_test_status status;
+	struct kfsw_button_test_status status;
 	const uint64_t beyond_u32_seconds = ((uint64_t)UINT32_MAX + 1U) * 1000U;
 
-	kfsw_boton_test_process_level(true, beyond_u32_seconds);
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	kfsw_button_test_process_level(true, beyond_u32_seconds);
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_equal(status.press_count, 1U);
 	zassert_equal(status.last_press_s, UINT32_MAX);
 }
 
-ZTEST(boton_test, test_parameter_definition_set_has_stable_nonpersistent_ids)
+ZTEST(button_test, test_parameter_definition_set_has_stable_nonpersistent_ids)
 {
 	const struct kfsw_param_definition *press_count = find_definition("press_count");
 	const struct kfsw_param_definition *last_press_s = find_definition("last_press_s");
@@ -266,24 +266,25 @@ ZTEST(boton_test, test_parameter_definition_set_has_stable_nonpersistent_ids)
 	const struct kfsw_param_definition *led_blue = find_definition("led_blue");
 	const struct kfsw_param_definition *led_red = find_definition("led_red");
 
-	zassert_equal(KFSW_BOTON_TEST_PARAM_TABLE_ID, 67U);
-	zassert_equal(strcmp(KFSW_BOTON_TEST_PARAM_TABLE_NAME, "hw_test"), 0);
-	zassert_equal(kfsw_boton_test_param_definitions.count, 5U);
+	zassert_equal(KFSW_BUTTON_TEST_PARAM_TABLE_ID, 67U);
+	zassert_equal(strcmp(KFSW_BUTTON_TEST_PARAM_TABLE_NAME, "hw_test"), 0);
+	zassert_equal(kfsw_button_test_param_definitions.count, 5U);
 	zassert_not_null(press_count);
 	zassert_not_null(last_press_s);
 	zassert_not_null(led_green);
 	zassert_not_null(led_blue);
 	zassert_not_null(led_red);
-	zassert_equal(press_count->offset, BOTON_TEST_PRESS_COUNT_OFFSET);
-	zassert_equal(last_press_s->offset, BOTON_TEST_LAST_PRESS_S_OFFSET);
+	zassert_equal(press_count->offset, BUTTON_TEST_PRESS_COUNT_OFFSET);
+	zassert_equal(last_press_s->offset, BUTTON_TEST_LAST_PRESS_S_OFFSET);
 	zassert_equal(led_green->offset, HW_TEST_LED_GREEN_OFFSET);
 	zassert_equal(led_blue->offset, HW_TEST_LED_BLUE_OFFSET);
 	zassert_equal(led_red->offset, HW_TEST_LED_RED_OFFSET);
 
 	/* A module table must be in the module band. */
-	zassert_equal(kfsw_boton_test_param_definitions.table, KFSW_BOTON_TEST_PARAM_TABLE_ID);
-	zassert_str_equal(kfsw_boton_test_param_definitions.name, KFSW_BOTON_TEST_PARAM_TABLE_NAME);
-	zassert_str_equal(kfsw_param_band_name(KFSW_BOTON_TEST_PARAM_TABLE_ID), "module");
+	zassert_equal(kfsw_button_test_param_definitions.table, KFSW_BUTTON_TEST_PARAM_TABLE_ID);
+	zassert_str_equal(kfsw_button_test_param_definitions.name,
+			  KFSW_BUTTON_TEST_PARAM_TABLE_NAME);
+	zassert_str_equal(kfsw_param_band_name(KFSW_BUTTON_TEST_PARAM_TABLE_ID), "module");
 	zassert_equal(press_count->type, KFSW_PARAM_U32);
 	zassert_equal(last_press_s->type, KFSW_PARAM_U32);
 	zassert_equal(led_green->type, KFSW_PARAM_U8);
@@ -301,7 +302,7 @@ ZTEST(boton_test, test_parameter_definition_set_has_stable_nonpersistent_ids)
 	zassert_false((led_red->flags & KFSW_PARAM_FLAG_PERSISTENT) != 0U);
 }
 
-ZTEST(boton_test, test_parameter_visit_contains_hw_test_values)
+ZTEST(button_test, test_parameter_visit_contains_hw_test_values)
 {
 	struct parameter_visit_summary summary = {
 		.button_values_read_only = true,
@@ -320,42 +321,42 @@ ZTEST(boton_test, test_parameter_visit_contains_hw_test_values)
 	zassert_false(summary.any_persistent);
 }
 
-ZTEST(boton_test, test_owner_setter_controls_each_led_without_changing_button)
+ZTEST(button_test, test_owner_setter_controls_each_led_without_changing_button)
 {
-	struct kfsw_boton_test_status status;
+	struct kfsw_button_test_status status;
 
-	kfsw_boton_test_process_level(true, 5000U);
+	kfsw_button_test_process_level(true, 5000U);
 
-	zassert_ok(kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_GREEN, true));
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	zassert_ok(kfsw_button_test_set_led(KFSW_BUTTON_TEST_LED_GREEN, true));
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_true(status.led_green);
 	zassert_false(status.led_blue);
 	zassert_false(status.led_red);
-	zassert_ok(kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_GREEN, false));
+	zassert_ok(kfsw_button_test_set_led(KFSW_BUTTON_TEST_LED_GREEN, false));
 
-	zassert_ok(kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_BLUE, true));
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	zassert_ok(kfsw_button_test_set_led(KFSW_BUTTON_TEST_LED_BLUE, true));
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_false(status.led_green);
 	zassert_true(status.led_blue);
 	zassert_false(status.led_red);
-	zassert_ok(kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_BLUE, false));
+	zassert_ok(kfsw_button_test_set_led(KFSW_BUTTON_TEST_LED_BLUE, false));
 
-	zassert_ok(kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_RED, true));
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	zassert_ok(kfsw_button_test_set_led(KFSW_BUTTON_TEST_LED_RED, true));
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_false(status.led_green);
 	zassert_false(status.led_blue);
 	zassert_true(status.led_red);
-	zassert_ok(kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_RED, false));
+	zassert_ok(kfsw_button_test_set_led(KFSW_BUTTON_TEST_LED_RED, false));
 
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_equal(status.press_count, 1U);
 	zassert_equal(status.last_press_s, 5U);
-	zassert_equal(kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_COUNT, true), -EINVAL);
+	zassert_equal(kfsw_button_test_set_led(KFSW_BUTTON_TEST_LED_COUNT, true), -EINVAL);
 }
 
-ZTEST(boton_test, test_param_led_writes_share_owner_state_and_reject_invalid_boolean)
+ZTEST(button_test, test_param_led_writes_share_owner_state_and_reject_invalid_boolean)
 {
-	struct kfsw_boton_test_status status;
+	struct kfsw_button_test_status status;
 	struct kfsw_param_value value = {
 		.type = KFSW_PARAM_U8,
 		.size = sizeof(uint8_t),
@@ -365,14 +366,14 @@ ZTEST(boton_test, test_param_led_writes_share_owner_state_and_reject_invalid_boo
 	zassert_ok(kfsw_param_set("led_green", &value));
 	zassert_ok(kfsw_param_set("led_blue", &value));
 	zassert_ok(kfsw_param_set("led_red", &value));
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_true(status.led_green);
 	zassert_true(status.led_blue);
 	zassert_true(status.led_red);
 
 	value.scalar.u8 = 2U;
 	zassert_equal(kfsw_param_set("led_blue", &value), -ERANGE);
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_true(status.led_green);
 	zassert_true(status.led_blue);
 	zassert_true(status.led_red);
@@ -381,21 +382,21 @@ ZTEST(boton_test, test_param_led_writes_share_owner_state_and_reject_invalid_boo
 	zassert_ok(kfsw_param_set("led_green", &value));
 	zassert_ok(kfsw_param_set("led_blue", &value));
 	zassert_ok(kfsw_param_set("led_red", &value));
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_false(status.led_green);
 	zassert_false(status.led_blue);
 	zassert_false(status.led_red);
 }
 
-ZTEST(boton_test, test_parameter_get_is_live_and_writes_leave_owner_state_unchanged)
+ZTEST(button_test, test_parameter_get_is_live_and_writes_leave_owner_state_unchanged)
 {
-	struct kfsw_boton_test_status before;
-	struct kfsw_boton_test_status after;
+	struct kfsw_button_test_status before;
+	struct kfsw_button_test_status after;
 	struct kfsw_param_value press_count;
 	struct kfsw_param_value last_press_s;
 
-	kfsw_boton_test_process_level(true, 42001U);
-	zassert_ok(kfsw_boton_test_get_status(&before));
+	kfsw_button_test_process_level(true, 42001U);
+	zassert_ok(kfsw_button_test_get_status(&before));
 	zassert_ok(kfsw_param_get("press_count", &press_count));
 	zassert_ok(kfsw_param_get("last_press_s", &last_press_s));
 	zassert_equal(press_count.type, KFSW_PARAM_U32);
@@ -409,67 +410,67 @@ ZTEST(boton_test, test_parameter_get_is_live_and_writes_leave_owner_state_unchan
 	last_press_s.scalar.u32 = 100U;
 	zassert_equal(kfsw_param_set("press_count", &press_count), -EACCES);
 	zassert_equal(kfsw_param_set("last_press_s", &last_press_s), -EACCES);
-	zassert_ok(kfsw_boton_test_get_status(&after));
+	zassert_ok(kfsw_button_test_get_status(&after));
 	zassert_equal(after.press_count, before.press_count);
 	zassert_equal(after.last_press_s, before.last_press_s);
 }
 
-#if CONFIG_KFSW_BOTON_TEST_GPIO
-ZTEST(boton_test, test_led_gpio_outputs_start_off_and_honor_devicetree_polarity)
+#if CONFIG_KFSW_BUTTON_TEST_GPIO
+ZTEST(button_test, test_led_gpio_outputs_start_off_and_honor_devicetree_polarity)
 {
-	zassert_equal(gpio_emul_output_get_dt(&boton_test_green_led), 0);
-	zassert_equal(gpio_emul_output_get_dt(&boton_test_blue_led), 1);
-	zassert_equal(gpio_emul_output_get_dt(&boton_test_red_led), 0);
+	zassert_equal(gpio_emul_output_get_dt(&button_test_green_led), 0);
+	zassert_equal(gpio_emul_output_get_dt(&button_test_blue_led), 1);
+	zassert_equal(gpio_emul_output_get_dt(&button_test_red_led), 0);
 
-	zassert_ok(kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_GREEN, true));
-	zassert_ok(kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_BLUE, true));
-	zassert_ok(kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_RED, true));
-	zassert_equal(gpio_emul_output_get_dt(&boton_test_green_led), 1);
-	zassert_equal(gpio_emul_output_get_dt(&boton_test_blue_led), 0);
-	zassert_equal(gpio_emul_output_get_dt(&boton_test_red_led), 1);
+	zassert_ok(kfsw_button_test_set_led(KFSW_BUTTON_TEST_LED_GREEN, true));
+	zassert_ok(kfsw_button_test_set_led(KFSW_BUTTON_TEST_LED_BLUE, true));
+	zassert_ok(kfsw_button_test_set_led(KFSW_BUTTON_TEST_LED_RED, true));
+	zassert_equal(gpio_emul_output_get_dt(&button_test_green_led), 1);
+	zassert_equal(gpio_emul_output_get_dt(&button_test_blue_led), 0);
+	zassert_equal(gpio_emul_output_get_dt(&button_test_red_led), 1);
 
-	zassert_ok(kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_GREEN, false));
-	zassert_ok(kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_BLUE, false));
-	zassert_ok(kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_RED, false));
-	zassert_equal(gpio_emul_output_get_dt(&boton_test_green_led), 0);
-	zassert_equal(gpio_emul_output_get_dt(&boton_test_blue_led), 1);
-	zassert_equal(gpio_emul_output_get_dt(&boton_test_red_led), 0);
+	zassert_ok(kfsw_button_test_set_led(KFSW_BUTTON_TEST_LED_GREEN, false));
+	zassert_ok(kfsw_button_test_set_led(KFSW_BUTTON_TEST_LED_BLUE, false));
+	zassert_ok(kfsw_button_test_set_led(KFSW_BUTTON_TEST_LED_RED, false));
+	zassert_equal(gpio_emul_output_get_dt(&button_test_green_led), 0);
+	zassert_equal(gpio_emul_output_get_dt(&button_test_blue_led), 1);
+	zassert_equal(gpio_emul_output_get_dt(&button_test_red_led), 0);
 }
 
-ZTEST(boton_test, test_active_low_gpio_isr_debounce_hold_and_release_rearm)
+ZTEST(button_test, test_active_low_gpio_isr_debounce_hold_and_release_rearm)
 {
-	struct kfsw_boton_test_status status;
+	struct kfsw_button_test_status status;
 
 	/* Raw low is a logical press. Every bounce edge restarts the 30 ms delay. */
 	set_raw_button_level(0);
-	k_sleep(K_MSEC(BOTON_TEST_BOUNCE_STEP_MS));
+	k_sleep(K_MSEC(BUTTON_TEST_BOUNCE_STEP_MS));
 	set_raw_button_level(1);
-	k_sleep(K_MSEC(BOTON_TEST_BOUNCE_STEP_MS));
+	k_sleep(K_MSEC(BUTTON_TEST_BOUNCE_STEP_MS));
 	set_raw_button_level(0);
-	k_sleep(K_MSEC(BOTON_TEST_BOUNCE_STEP_MS));
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	k_sleep(K_MSEC(BUTTON_TEST_BOUNCE_STEP_MS));
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_equal(status.press_count, 0U);
 
 	wait_for_debounce();
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_equal(status.press_count, 1U);
 
 	/* A held raw-low input emits no new edge and must remain one press. */
 	wait_for_debounce();
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_equal(status.press_count, 1U);
 
 	/* Raw high is the active-low release; debounce it before pressing again. */
 	set_raw_button_level(1);
 	wait_for_debounce();
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_equal(status.press_count, 1U);
 
 	set_raw_button_level(0);
 	wait_for_debounce();
-	zassert_ok(kfsw_boton_test_get_status(&status));
+	zassert_ok(kfsw_button_test_get_status(&status));
 	zassert_equal(status.press_count, 2U);
 }
 #endif
 
-ZTEST_SUITE(boton_test, NULL, boton_test_setup, boton_test_before, NULL, NULL);
+ZTEST_SUITE(button_test, NULL, button_test_setup, button_test_before, NULL, NULL);

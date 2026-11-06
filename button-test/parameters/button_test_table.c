@@ -4,7 +4,7 @@
 
 #include <zephyr/sys/util.h>
 
-#include <kfsw/modules/boton_test.h>
+#include <kfsw/modules/button_test.h>
 #include <kfsw/services/parameter.h>
 
 /*
@@ -22,9 +22,9 @@ static uint8_t led_green;
 static uint8_t led_blue;
 static uint8_t led_red;
 
-static struct kfsw_boton_test_status sample_status(void)
+static struct kfsw_button_test_status sample_status(void)
 {
-	struct kfsw_boton_test_status status = {
+	struct kfsw_button_test_status status = {
 		.press_count = press_count,
 		.last_press_s = last_press_s,
 		.led_green = led_green != 0U,
@@ -32,7 +32,7 @@ static struct kfsw_boton_test_status sample_status(void)
 		.led_red = led_red != 0U,
 	};
 
-	(void)kfsw_boton_test_get_status(&status);
+	(void)kfsw_button_test_get_status(&status);
 	return status;
 }
 
@@ -68,20 +68,20 @@ static int validate_led(const union kfsw_param_scalar *value)
 
 static int apply_green_led(const union kfsw_param_scalar *value)
 {
-	return kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_GREEN, value->u8 != 0U);
+	return kfsw_button_test_set_led(KFSW_BUTTON_TEST_LED_GREEN, value->u8 != 0U);
 }
 
 static int apply_blue_led(const union kfsw_param_scalar *value)
 {
-	return kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_BLUE, value->u8 != 0U);
+	return kfsw_button_test_set_led(KFSW_BUTTON_TEST_LED_BLUE, value->u8 != 0U);
 }
 
 static int apply_red_led(const union kfsw_param_scalar *value)
 {
-	return kfsw_boton_test_set_led(KFSW_BOTON_TEST_LED_RED, value->u8 != 0U);
+	return kfsw_button_test_set_led(KFSW_BUTTON_TEST_LED_RED, value->u8 != 0U);
 }
 
-static const struct kfsw_param_definition boton_test_param_definitions[] = {
+static const struct kfsw_param_definition button_test_param_definitions[] = {
 	{
 		.offset = 0x00U,
 		.type = KFSW_PARAM_U32,
@@ -137,12 +137,12 @@ static const struct kfsw_param_definition boton_test_param_definitions[] = {
 	},
 };
 
-KFSW_PARAM_TABLE_FITS_THE_LINK(boton_test_param_definitions);
+KFSW_PARAM_TABLE_FITS_THE_LINK(button_test_param_definitions);
 
-const struct kfsw_param_definition_set kfsw_boton_test_param_definitions = {
-	.table = KFSW_BOTON_TEST_PARAM_TABLE_ID,
-	.name = KFSW_BOTON_TEST_PARAM_TABLE_NAME,
+const struct kfsw_param_definition_set kfsw_button_test_param_definitions = {
+	.table = KFSW_BUTTON_TEST_PARAM_TABLE_ID,
+	.name = KFSW_BUTTON_TEST_PARAM_TABLE_NAME,
 	.description = "Button presses and LED controls",
-	.definitions = boton_test_param_definitions,
-	.count = ARRAY_SIZE(boton_test_param_definitions),
+	.definitions = button_test_param_definitions,
+	.count = ARRAY_SIZE(button_test_param_definitions),
 };

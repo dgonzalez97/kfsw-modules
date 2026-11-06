@@ -5,19 +5,19 @@
 #include <zephyr/shell/shell.h>
 #include <zephyr/sys/util.h>
 
-#include <kfsw/modules/boton_test.h>
+#include <kfsw/modules/button_test.h>
 
-static int cmd_boton_test_status(const struct shell *sh, size_t argc, char **argv)
+static int cmd_button_test_status(const struct shell *sh, size_t argc, char **argv)
 {
-	struct kfsw_boton_test_status status;
+	struct kfsw_button_test_status status;
 	int result;
 
 	ARG_UNUSED(argc);
 	ARG_UNUSED(argv);
 
-	result = kfsw_boton_test_get_status(&status);
+	result = kfsw_button_test_get_status(&status);
 	if (result != 0) {
-		shell_error(sh, "boton_test status unavailable (%d)", result);
+		shell_error(sh, "button_test status unavailable (%d)", result);
 		return result;
 	}
 
@@ -26,32 +26,32 @@ static int cmd_boton_test_status(const struct shell *sh, size_t argc, char **arg
 	shell_print(sh, "led_green: %s", status.led_green ? "on" : "off");
 	shell_print(sh, "led_blue: %s", status.led_blue ? "on" : "off");
 	shell_print(sh, "led_red: %s", status.led_red ? "on" : "off");
-#if CONFIG_KFSW_BOTON_TEST_GPIO
-	shell_print(sh, "debounce_ms: %d", CONFIG_KFSW_BOTON_TEST_DEBOUNCE_MS);
+#if CONFIG_KFSW_BUTTON_TEST_GPIO
+	shell_print(sh, "debounce_ms: %d", CONFIG_KFSW_BUTTON_TEST_DEBOUNCE_MS);
 #endif
 	return 0;
 }
 
-SHELL_STATIC_SUBCMD_SET_CREATE(boton_test_commands,
-	SHELL_CMD_ARG(status, NULL, "Show debounced button status.", cmd_boton_test_status, 1, 0),
+SHELL_STATIC_SUBCMD_SET_CREATE(button_test_commands,
+	SHELL_CMD_ARG(status, NULL, "Show debounced button status.", cmd_button_test_status, 1, 0),
 	SHELL_SUBCMD_SET_END);
 
-SHELL_CMD_REGISTER(boton_test, &boton_test_commands, "Button example diagnostics.", NULL);
+SHELL_CMD_REGISTER(button_test, &button_test_commands, "Button example diagnostics.", NULL);
 
 static int cmd_hw_test_led(const struct shell *sh, size_t argc, char **argv)
 {
-	enum kfsw_boton_test_led led;
+	enum kfsw_button_test_led led;
 	bool on;
 	int result;
 
 	ARG_UNUSED(argc);
 
 	if (strcmp(argv[1], "green") == 0) {
-		led = KFSW_BOTON_TEST_LED_GREEN;
+		led = KFSW_BUTTON_TEST_LED_GREEN;
 	} else if (strcmp(argv[1], "blue") == 0) {
-		led = KFSW_BOTON_TEST_LED_BLUE;
+		led = KFSW_BUTTON_TEST_LED_BLUE;
 	} else if (strcmp(argv[1], "red") == 0) {
-		led = KFSW_BOTON_TEST_LED_RED;
+		led = KFSW_BUTTON_TEST_LED_RED;
 	} else {
 		shell_error(sh, "unknown LED colour: %s", argv[1]);
 		return -EINVAL;
@@ -66,7 +66,7 @@ static int cmd_hw_test_led(const struct shell *sh, size_t argc, char **argv)
 		return -EINVAL;
 	}
 
-	result = kfsw_boton_test_set_led(led, on);
+	result = kfsw_button_test_set_led(led, on);
 	if (result != 0) {
 		shell_error(sh, "%s LED control failed (%d)", argv[1], result);
 		return result;

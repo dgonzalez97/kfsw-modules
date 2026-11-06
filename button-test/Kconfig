@@ -1,42 +1,42 @@
-menuconfig KFSW_BOTON_TEST
-	bool "K-FSW boton_test example module"
+menuconfig KFSW_BUTTON_TEST
+	bool "K-FSW button_test example module"
 	depends on KFSW_PARAM
 	help
 	  Enable the button and LED example module: debounced presses, a status
 	  API and read-only parameters.
 
-if KFSW_BOTON_TEST
+if KFSW_BUTTON_TEST
 
-config KFSW_BOTON_TEST_GPIO
+config KFSW_BUTTON_TEST_GPIO
 	bool "Physical GPIO button input"
 	depends on GPIO
 	help
-	  Bind boton_test to the GPIO node selected by the composition's
-	  kfsw,boton-test-button Devicetree chosen property. Leave this disabled
+	  Bind button_test to the GPIO node selected by the composition's
+	  kfsw,button-test-button Devicetree chosen property. Leave this disabled
 	  for software-only state and PARAM tests.
 
-config KFSW_BOTON_TEST_LED_GPIO
+config KFSW_BUTTON_TEST_LED_GPIO
 	bool "Physical GPIO LED outputs"
 	depends on GPIO
 	help
 	  Bind the green, blue, and red hardware-test LEDs to GPIO nodes selected
-	  by the composition's kfsw,boton-test-led-* Devicetree chosen
+	  by the composition's kfsw,button-test-led-* Devicetree chosen
 	  properties. Each node's GPIO flags define its active polarity.
 
-config KFSW_BOTON_TEST_DEBOUNCE_MS
+config KFSW_BUTTON_TEST_DEBOUNCE_MS
 	int "Button debounce interval in milliseconds"
-	depends on KFSW_BOTON_TEST_GPIO
+	depends on KFSW_BUTTON_TEST_GPIO
 	range 1 1000
 	default 30
 	help
 	  Delay from the most recent GPIO edge until the logical button level is
 	  sampled. Each new edge restarts this interval.
 
-config KFSW_BOTON_TEST_SHELL
-	bool "boton_test hardware-test shell commands"
+config KFSW_BUTTON_TEST_SHELL
+	bool "button_test hardware-test shell commands"
 	depends on SHELL
 	default y
 	help
-	  Add `boton_test status` and `test led <green|blue|red> <on|off>`.
+	  Add `button_test status` and `test led <green|blue|red> <on|off>`.
 
-endif # KFSW_BOTON_TEST
+endif # KFSW_BUTTON_TEST

@@ -40,7 +40,7 @@ the node.
 | --- | --- | --- |
 | 50 | `radio-uhf` | Identity, status, optional encryption settings |
 | 51 | `temperature-sensor-example`, as `temp_example` | 5, read-only |
-| 67 | `boton-test`, as `hw_test` | 5: two counters, three LED controls |
+| 67 | `button-test`, as `hw_test` | 5: two counters, three LED controls |
 
 A duplicate name or address is rejected at startup.
 
@@ -76,10 +76,10 @@ SiK AT commands are not supported yet. Entering command mode interrupts the
 serial link, so it needs its own design. The module never sends `AT&W`, `AT&F`
 or `ATS...` and doesn't change the `MAVLINK=1` setting.
 
-## boton-test
+## button-test
 
-`boton_test` is a small example of a hardware module with state. Its parameter
-table is `hw_test`; the shell commands are `boton_test status` and `test led`.
+`button_test` is a small example of a hardware module with state. Its parameter
+table is `hw_test`; the shell commands are `button_test status` and `test led`.
 
 ```text
   button --> edge ISR --> debounce work ----+
@@ -107,7 +107,7 @@ one at a time, so use the status API for a consistent snapshot.
 
 The first hardware mapping is the NUCLEO USER button and its three LEDs. The
 state, settings, shell and GPIO emulator tests run without the board; the
-hardware test is in `k-fsw/tests/hil/boton-test/`.
+hardware test is in `k-fsw/tests/hil/button-test/`.
 
 ## temperature-sensor-example
 

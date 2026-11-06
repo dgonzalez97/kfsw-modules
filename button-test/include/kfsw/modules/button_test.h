@@ -1,5 +1,5 @@
-#ifndef KFSW_MODULES_BOTON_TEST_H
-#define KFSW_MODULES_BOTON_TEST_H
+#ifndef KFSW_MODULES_BUTTON_TEST_H
+#define KFSW_MODULES_BUTTON_TEST_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -11,11 +11,11 @@ extern "C" {
 struct kfsw_param_definition_set;
 
 /** Parameter table of the button example, in the module band. */
-#define KFSW_BOTON_TEST_PARAM_TABLE_ID 67U
+#define KFSW_BUTTON_TEST_PARAM_TABLE_ID 67U
 /** Parameter table name, kept from when the module was the hardware test. */
-#define KFSW_BOTON_TEST_PARAM_TABLE_NAME "hw_test"
+#define KFSW_BUTTON_TEST_PARAM_TABLE_NAME "hw_test"
 
-/** @defgroup kfsw_modules_boton_test Button test
+/** @defgroup kfsw_modules_button_test Button test
  *  @ingroup kfsw_modules
  *  Debounced button, LEDs, status and parameters.
  *
@@ -23,15 +23,15 @@ struct kfsw_param_definition_set;
  */
 
 /** Independently controlled LEDs in the developer hardware-test example. */
-enum kfsw_boton_test_led {
-	KFSW_BOTON_TEST_LED_GREEN,
-	KFSW_BOTON_TEST_LED_BLUE,
-	KFSW_BOTON_TEST_LED_RED,
-	KFSW_BOTON_TEST_LED_COUNT,
+enum kfsw_button_test_led {
+	KFSW_BUTTON_TEST_LED_GREEN,
+	KFSW_BUTTON_TEST_LED_BLUE,
+	KFSW_BUTTON_TEST_LED_RED,
+	KFSW_BUTTON_TEST_LED_COUNT,
 };
 
 /** Consistent snapshot of volatile button and LED state since the current boot. */
-struct kfsw_boton_test_status {
+struct kfsw_button_test_status {
 	/** Valid debounced presses; saturates at UINT32_MAX. */
 	uint32_t press_count;
 	/** Monotonic whole seconds of the latest press, or zero before a press. */
@@ -52,7 +52,7 @@ struct kfsw_boton_test_status {
  *
  * @return 0 on success, or a negative errno value when GPIO setup fails.
  */
-int kfsw_boton_test_init(void);
+int kfsw_button_test_init(void);
 
 /**
  * Copy a consistent snapshot of the module state.
@@ -61,7 +61,7 @@ int kfsw_boton_test_init(void);
  * @return 0 on success, -EINVAL for a NULL destination, or -EACCES before
  *         module initialization.
  */
-int kfsw_boton_test_get_status(struct kfsw_boton_test_status *status);
+int kfsw_button_test_get_status(struct kfsw_button_test_status *status);
 
 /**
  * Set one LED.
@@ -71,10 +71,10 @@ int kfsw_boton_test_get_status(struct kfsw_boton_test_status *status);
  * @return 0 on success, -EINVAL for an unknown LED, -EACCES before module
  *         initialization, or a negative GPIO error.
  */
-int kfsw_boton_test_set_led(enum kfsw_boton_test_led led, bool on);
+int kfsw_button_test_set_led(enum kfsw_button_test_led led, bool on);
 
-/** Parameter table of boton_test. */
-extern const struct kfsw_param_definition_set kfsw_boton_test_param_definitions;
+/** Parameter table of button_test. */
+extern const struct kfsw_param_definition_set kfsw_button_test_param_definitions;
 
 /** @} */
 
