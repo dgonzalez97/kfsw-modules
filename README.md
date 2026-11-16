@@ -39,7 +39,7 @@ the node.
 | Table | Module | Values |
 | --- | --- | --- |
 | 50 | `radio-uhf` | Identity, status, optional encryption settings |
-| 51 | `temperature-sensor-example`, as `temp_example` | 5, read-only |
+| 51 | `temperature-sensor-example`, as `temp_example` | 7: six readings and a writable alarm threshold |
 | 67 | `button-test`, as `hw_test` | 5: two counters, three LED controls |
 
 A duplicate name or address is rejected at startup.
