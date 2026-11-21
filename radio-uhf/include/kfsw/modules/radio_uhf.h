@@ -1,6 +1,12 @@
 #ifndef KFSW_MODULES_RADIO_UHF_H
 #define KFSW_MODULES_RADIO_UHF_H
 
+/**
+ * @defgroup kfsw_modules_radio_uhf UHF radio
+ * @ingroup kfsw_modules
+ * @{
+ */
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -84,5 +90,7 @@ extern const struct kfsw_param_definition_set kfsw_radio_uhf_param_definitions;
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */
 
 #endif

@@ -4,7 +4,8 @@ Device and subsystem modules: the code for a specific piece of hardware, built
 on the K-FSW services, comms and platform layers.
 
 The examples cover a Holybro SiK UHF radio, board buttons and LEDs, and an
-MCU temperature sensor. Add other device or subsystem modules here.
+MCU temperature sensor. The `gpredict` module tracks spacecraft passes.
+Add other device or subsystem modules here.
 
 Full documentation is on the [K-FSW site](https://dgonzalez97.github.io/k-fsw/).
 
@@ -40,6 +41,7 @@ the node.
 | --- | --- | --- |
 | 50 | `radio-uhf` | Identity, status, optional encryption settings |
 | 51 | `temperature-sensor-example`, as `temp_example` | 7: six readings and a writable alarm threshold |
+| 52 | `gpredict` | Pass state, bearings and spacecraft profiles |
 | 67 | `button-test`, as `hw_test` | 5: two counters, three LED controls |
 
 A duplicate name or address is rejected at startup.
@@ -125,6 +127,13 @@ The failure counter counts failed reads, not age checks.
 
 It measures the die, not the board or the air, and is only accurate to a few
 degrees, so use it as a trend.
+
+## gpredict
+
+Tracks pass state and bearings with a grace period before parking after a gap
+in predictor updates. Spacecraft profiles hold pass settings. Parameter and
+command interfaces are included when their services are enabled. The hamlib
+protocol adapters and rotator and radio drivers are not part of this module.
 
 ## Module layout
 
