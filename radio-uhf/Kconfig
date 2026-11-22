@@ -54,6 +54,11 @@ config KFSW_RADIO_UHF_CRYPTO
 	  256-bit key locally. Fresh authenticated sessions reject old frames
 	  after reset without per-packet flash writes. Missing keys fail closed.
 
+	  This wraps the interface, so everything crossing that link is covered,
+	  including what never passes through a socket. KFSW_CSP_HMAC is the
+	  other half of the same question and works per socket; on a link with
+	  this codec it adds a tag inside an already sealed frame.
+
 config KFSW_RADIO_UHF_CRYPTO_INTERFACE
 	string "KISS interface connected to the radio"
 	depends on KFSW_RADIO_UHF_CRYPTO

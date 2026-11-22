@@ -4,7 +4,8 @@ Device and subsystem modules: the code for a specific piece of hardware, built
 on the K-FSW services, comms and platform layers.
 
 The examples cover a Holybro SiK UHF radio, board buttons and LEDs, and an
-MCU temperature sensor. Add other device or subsystem modules here.
+MCU temperature sensor. The `gpredict` module tracks spacecraft passes.
+Add other device or subsystem modules here.
 
 Full documentation is on the [K-FSW site](https://dgonzalez97.github.io/k-fsw/).
 
@@ -39,8 +40,9 @@ the node.
 | Table | Module | Values |
 | --- | --- | --- |
 | 50 | `radio-uhf` | Identity, status, optional encryption settings |
-| 51 | `temperature-sensor-example`, as `temp_example` | 5, read-only |
-| 67 | `boton-test`, as `hw_test` | 5: two counters, three LED controls |
+| 51 | `temperature-sensor-example`, as `temp_example` | 7: six readings and a writable alarm threshold |
+| 52 | `gpredict` | Pass state, bearings and spacecraft profiles |
+| 67 | `button-test`, as `hw_test` | 5: two counters, three LED controls |
 
 A duplicate name or address is rejected at startup.
 
@@ -76,10 +78,10 @@ SiK AT commands are not supported yet. Entering command mode interrupts the
 serial link, so it needs its own design. The module never sends `AT&W`, `AT&F`
 or `ATS...` and doesn't change the `MAVLINK=1` setting.
 
-## boton-test
+## button-test
 
-`boton_test` is a small example of a hardware module with state. Its parameter
-table is `hw_test`; the shell commands are `boton_test status` and `test led`.
+`button_test` is a small example of a hardware module with state. Its parameter
+table is `hw_test`; the shell commands are `button_test status` and `test led`.
 
 ```text
   button --> edge ISR --> debounce work ----+
@@ -107,7 +109,7 @@ one at a time, so use the status API for a consistent snapshot.
 
 The first hardware mapping is the NUCLEO USER button and its three LEDs. The
 state, settings, shell and GPIO emulator tests run without the board; the
-hardware test is in `k-fsw/tests/hil/boton-test/`.
+hardware test is in `k-fsw/tests/hil/button-test/`.
 
 ## temperature-sensor-example
 
@@ -126,12 +128,36 @@ The failure counter counts failed reads, not age checks.
 It measures the die, not the board or the air, and is only accurate to a few
 degrees, so use it as a trend.
 
+## gpredict
+
+Tracks pass state and bearings with a grace period before parking after a gap
+in predictor updates. Spacecraft profiles hold pass settings. Parameter and
+command interfaces are included when their services are enabled. The hamlib
+protocol adapters and rotator and radio drivers are not part of this module.
+
 ## Module layout
 
 A module can have a public interface, a parameter table, health reporting,
 implementations, a shell command and tests. Only create the directories you
 need: `radio-uhf` has an interface, a table and a Holybro implementation, but no
 health directory.
+
+A shell command file is the one part that does not belong in the module's static
+archive. Nothing calls into a shell group; the shell finds it through a linker
+section, so a member holding only that section is never pulled in and the
+commands are absent from `help` with nothing reporting a problem. Give the file
+a Zephyr library instead, which is linked whole:
+
+```cmake
+if(CONFIG_KFSW_BUTTON_TEST_SHELL)
+    zephyr_library_named(kfsw_button_test_shell)
+    zephyr_library_sources(src/button_test_shell.c)
+    zephyr_library_link_libraries(kfsw::button_test)
+endif()
+```
+
+`radio-uhf` needs none of this because its shell code sits in `radio_uhf.c`
+next to functions the application calls, which pulls the member in anyway.
 
 ## License
 

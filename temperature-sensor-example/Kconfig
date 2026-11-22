@@ -31,6 +31,15 @@ config KFSW_TEMP_EXAMPLE_MAX_AGE_MS
 	  Older readings are returned as invalid without accessing the sensor.
 	  Set this above the poll interval plus the permitted conversion delay.
 
+config KFSW_TEMP_EXAMPLE_ALARM_MILLI_C
+	int "Default alarm threshold in thousandths of a degree Celsius"
+	range -40000 125000
+	default 85000
+	help
+	  A reading at or above this raises the alarm event once, and a reading
+	  below it clears it. The temp_alarm_mc parameter changes it in flight
+	  and keeps the change across a reset.
+
 config KFSW_TEMP_EXAMPLE_STACK_SIZE
 	int "Sensor workqueue stack size"
 	depends on KFSW_TEMP_EXAMPLE_SENSOR
